@@ -1,7 +1,7 @@
 name: Build Unsigned iOS IPA
 
 on: 
-  workflow_dispatch: # Allows you to trigger this manually on GitHub
+  workflow_dispatch:
 
 jobs:
   build:
@@ -13,7 +13,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           
       - name: Install dependencies
         run: npm install
@@ -26,15 +26,24 @@ jobs:
         
       - name: Build Unsigned App
         run: |
+          # 1. Tell Xcode exactly where Node.js is located
+          export NODE_BINARY=$(command -v node)
+          
+          # 2. Give the JavaScript bundler more memory to prevent crashing
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          
+          # 3. Build the app with strict signing disabled
           cd ios
-          # Note: If your app name differs in the ios folder, replace JPFlashcards below
           xcodebuild -workspace JPFlashcards.xcworkspace \
             -scheme JPFlashcards \
             -configuration Release \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS=""
             
       - name: Package into IPA
         run: |
