@@ -26,20 +26,22 @@ jobs:
         
       - name: Build Unsigned App
         run: |
-          # 1. Tell Xcode exactly where Node.js is located
-          export NODE_BINARY=$(command -v node)
+          cd ios
           
-          # 2. Give the JavaScript bundler more memory to prevent crashing
+          # 1. Write the exact Node.js location to the specific file Xcode requires
+          echo "export NODE_BINARY=$(command -v node)" > .xcode.env.local
+          
+          # 2. Give the JavaScript bundler more memory
           export NODE_OPTIONS="--max-old-space-size=4096"
           
-          # 3. Build the app with strict signing disabled
-          cd ios
+          # 3. Build the app with Sandboxing and Signing explicitly disabled
           xcodebuild -workspace JPFlashcards.xcworkspace \
             -scheme JPFlashcards \
             -configuration Release \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
