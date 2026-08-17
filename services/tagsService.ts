@@ -65,3 +65,23 @@ export function getAllKnownTags(words: VocabWord[], userTags: UserTagStore): str
   }
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
+
+/** All words carrying a given tag — powers the Tagged Words folder drill-down. */
+export function getWordsForTag(tag: string, words: VocabWord[], userTags: UserTagStore): VocabWord[] {
+  return words.filter((w) =>
+    getEffectiveTags(w, userTags).some((t) => t.toLowerCase() === tag.toLowerCase())
+  );
+}
+
+/** Tag name + word count, sorted alphabetically — the "folder list" view. */
+export function getTagCounts(words: VocabWord[], userTags: UserTagStore): { tag: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const w of words) {
+    for (const t of getEffectiveTags(w, userTags)) {
+      counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+  }
+  return Array.from(counts.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => a.tag.localeCompare(b.tag));
+}

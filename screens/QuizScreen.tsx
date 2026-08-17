@@ -128,7 +128,11 @@ export default function QuizScreen({
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       }
 
-      if (isCorrect && question.direction === 'en-to-jp') {
+      // Read the correct Japanese word aloud whenever it's the answer being
+      // revealed in en-to-jp mode — whether the user got it right (reinforcing
+      // it) or wrong (so they immediately hear the correct pronunciation next
+      // to the green highlight).
+      if (question.direction === 'en-to-jp') {
         speakJapanese(question.prompt.japanese);
       }
 

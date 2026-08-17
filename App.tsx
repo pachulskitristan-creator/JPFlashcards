@@ -9,7 +9,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import HomeScreen from './screens/HomeScreen';
 import QuizScreen from './screens/QuizScreen';
 import AchievementsScreen from './screens/AchievementsScreen';
-import ProgressScreen from './screens/ProgressScreen';
+import StatisticsScreen from './screens/StatisticsScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import TaggedWordsScreen from './screens/TaggedWordsScreen';
 import CustomVocabManager from './components/CustomVocabManager';
 import AchievementUnlockOverlay from './components/AchievementUnlockOverlay';
 
@@ -33,7 +35,9 @@ function AppInner() {
   const [screen, setScreen] = useState<Screen>('home');
   const [vocabManagerVisible, setVocabManagerVisible] = useState(false);
   const [achievementsVisible, setAchievementsVisible] = useState(false);
-  const [progressVisible, setProgressVisible] = useState(false);
+  const [statisticsVisible, setStatisticsVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [taggedWordsVisible, setTaggedWordsVisible] = useState(false);
 
   const [customWords, setCustomWords] = useState<VocabWord[]>([]);
   const [userTags, setUserTags] = useState<UserTagStore>({});
@@ -70,7 +74,6 @@ function AppInner() {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
-  // Re-sync tags after the quiz screen (where tags actually get added) unmounts back to Home.
   const refreshUserTags = () => {
     loadUserTags().then(setUserTags);
   };
@@ -105,13 +108,12 @@ function AppInner() {
           onStart={() => setScreen('quiz')}
           onOpenVocabManager={() => setVocabManagerVisible(true)}
           onOpenAchievements={() => setAchievementsVisible(true)}
-          onOpenProgress={() => setProgressVisible(true)}
+          onOpenStatistics={() => setStatisticsVisible(true)}
+          onOpenTaggedWords={() => setTaggedWordsVisible(true)}
+          onOpenSettings={() => setSettingsVisible(true)}
           gamification={gamification}
           rollJustIncreased={rollJustIncreased}
           colors={colors}
-          isDark={isDark}
-          themePreference={themePreference}
-          onSetThemePreference={setThemePreference}
         />
       ) : (
         <QuizScreen
@@ -142,10 +144,27 @@ function AppInner() {
         gamification={gamification}
         colors={colors}
       />
-      <ProgressScreen
-        visible={progressVisible}
-        onClose={() => setProgressVisible(false)}
+      <StatisticsScreen
+        visible={statisticsVisible}
+        onClose={() => setStatisticsVisible(false)}
         allWords={allWords}
+        colors={colors}
+      />
+      <SettingsScreen
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+        colors={colors}
+        themePreference={themePreference}
+        onSetThemePreference={setThemePreference}
+      />
+      <TaggedWordsScreen
+        visible={taggedWordsVisible}
+        onClose={() => {
+          setTaggedWordsVisible(false);
+          refreshUserTags();
+        }}
+        allWords={allWords}
+        userTags={userTags}
         colors={colors}
       />
       {unlockQueue.length > 0 ? (

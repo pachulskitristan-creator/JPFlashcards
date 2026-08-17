@@ -1,7 +1,6 @@
-// screens/ProgressScreen.tsx
-// Shows what fraction of the word set the user "knows" (10-correct
-// streak or manually marked), overall and broken down per Vocabulary
-// Range. Loads its own SRS snapshot each time it's opened.
+// screens/StatisticsScreen.tsx
+// Overall "% known" as a circular ring (the headline stat), plus a
+// per-Vocabulary-Range breakdown below as simple bars.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
@@ -9,17 +8,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { VocabWord, SRSStore, getAllTiers, getTierLabel } from '../types';
 import { loadSRSStore } from '../services/storageService';
 import { isWordKnown } from '../services/srsEngine';
+import CircularProgress from '../components/CircularProgress';
 import PercentBar from '../components/PercentBar';
 import { ThemeColors } from '../theme/theme';
 
-interface ProgressScreenProps {
+interface StatisticsScreenProps {
   visible: boolean;
   onClose: () => void;
   allWords: VocabWord[];
   colors: ThemeColors;
 }
 
-export default function ProgressScreen({ visible, onClose, allWords, colors }: ProgressScreenProps) {
+export default function StatisticsScreen({ visible, onClose, allWords, colors }: StatisticsScreenProps) {
   const [srsStore, setSrsStore] = useState<SRSStore>({});
 
   useEffect(() => {
@@ -55,17 +55,20 @@ export default function ProgressScreen({ visible, onClose, allWords, colors }: P
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Progress</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Statistics</Text>
           <Pressable onPress={onClose} hitSlop={10}>
             <Ionicons name="close" size={26} color={colors.textSecondary} />
           </Pressable>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={[styles.summaryCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.bigPercent, { color: colors.primary }]}>
-              {Math.round(overallPercent)}%
-            </Text>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.ringWrap}>
+            <CircularProgress
+              percent={overallPercent}
+              colors={colors}
+              centerLabel={`${Math.round(overallPercent)}%`}
+              centerSublabel="known"
+            />
             <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
               {knownCount} of {totalCount} words known
             </Text>
@@ -111,20 +114,17 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
   },
-  summaryCard: {
-    borderRadius: 20,
-    paddingVertical: 24,
-    alignItems: 'center',
-    marginBottom: 24,
+  scrollContent: {
+    paddingBottom: 30,
   },
-  bigPercent: {
-    fontSize: 42,
-    fontWeight: '800',
+  ringWrap: {
+    alignItems: 'center',
+    marginBottom: 30,
   },
   summaryLabel: {
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 4,
+    marginTop: 14,
   },
   sectionLabel: {
     fontSize: 12,
@@ -135,7 +135,6 @@ const styles = StyleSheet.create({
   footnote: {
     fontSize: 12,
     marginTop: 12,
-    marginBottom: 30,
     lineHeight: 17,
   },
 });
