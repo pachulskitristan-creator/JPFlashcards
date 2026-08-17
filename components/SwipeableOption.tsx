@@ -1,9 +1,9 @@
 // components/SwipeableOption.tsx
-// A rectangular multiple-choice option. Tapping the main body selects
-// the answer. A small tab on the right edge can be dragged left to
-// reveal a Romaji "drawer" without triggering a selection.
+// Same interaction model as before (full-card tap/swipe for Japanese
+// options, plain tap for English options, static touch-area fix for
+// reliable tap-anywhere-to-close) — now theme-aware.
 
-import React, { useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View, Pressable, LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -13,9 +13,8 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-
-const DRAWER_WIDTH = 96;
-const OPEN_THRESHOLD = DRAWER_WIDTH * 0.4;
+import JapaneseText from './JapaneseText';
+import { ThemeColors } from '../theme/theme';
 
 export type OptionState = 'idle' | 'correct' | 'incorrect' | 'disabled';
 
@@ -24,32 +23,107 @@ interface SwipeableOptionProps {
   romaji: string;
   state: OptionState;
   onPress: () => void;
+  isJapaneseLabel?: boolean;
+  reading?: string;
+  colors: ThemeColors;
 }
 
-export default function SwipeableOption({ label, romaji, state, onPress }: SwipeableOptionProps) {
+const OPEN_RATIO = 0.88;
+
+export default function SwipeableOption({
+  label,
+  romaji,
+  state,
+  onPress,
+  isJapaneseLabel = false,
+  reading,
+  colors,
+}: SwipeableOptionProps) {
+  const isInteractive = state === 'idle';
+
+  const stateStyle =
+    state === 'correct'
+      ? { borderColor: colors.success, backgroundColor: colors.successBg }
+      : state === 'incorrect'
+      ? { borderColor: colors.error, backgroundColor: colors.errorBg }
+      : { borderColor: colors.border, backgroundColor: colors.surface };
+
+  // ---- English options: no swipe at all, just a plain tappable card ----
+  if (!isJapaneseLabel) {
+    return (
+      <View style={styles.wrapper}>
+        <Pressable
+          style={[styles.card, stateStyle]}
+          onPress={onPress}
+          disabled={!isInteractive}
+          hitSlop={4}
+        >
+          <Text style={[styles.label, { color: colors.textPrimary }]} numberOfLines={2}>
+            {label}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // ---- Japanese options: swipe-to-reveal-romaji, tap-anywhere-to-close ----
   const translateX = useSharedValue(0);
   const drawerOpen = useSharedValue(false);
-  const [containerWidth, setContainerWidth] = React.useState(0);
+  const cardWidth = useSharedValue(0);
+  const [measuredWidth, setMeasuredWidth] = React.useState(0);
 
-  const triggerHaptic = useCallback(() => {
-    Haptics.selectionAsync().catch(() => {});
-  }, []);
+  useEffect(() => {
+    if (measuredWidth > 0) cardWidth.value = measuredWidth;
+  }, [measuredWidth]);
 
-  const onLayout = (e: LayoutChangeEvent) => setContainerWidth(e.nativeEvent.layout.width);
+  useEffect(() => {
+    if (!isInteractive) {
+      translateX.value = withSpring(0, { damping: 20, stiffness: 250 });
+      drawerOpen.value = false;
+    }
+  }, [isInteractive]);
+
+  const onLayout = (e: LayoutChangeEvent) => setMeasuredWidth(e.nativeEvent.layout.width);
+
+  const triggerHaptic = () => Haptics.selectionAsync().catch(() => {});
+  const triggerPress = () => onPress();
+  const closeDrawer = () => {
+    translateX.value = withSpring(0, { damping: 20, stiffness: 250 });
+    drawerOpen.value = false;
+  };
+
+  const tapGesture = Gesture.Tap()
+    .maxDistance(14)
+    .enabled(isInteractive)
+    .onEnd(() => {
+      if (drawerOpen.value) {
+        runOnJS(closeDrawer)();
+      } else {
+        runOnJS(triggerPress)();
+      }
+    });
 
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
+    .activeOffsetX([-14, 14])
+    .failOffsetY([-12, 12])
+    .enabled(isInteractive)
     .onUpdate((event) => {
-      const base = drawerOpen.value ? -DRAWER_WIDTH : 0;
+      const maxOpen = -cardWidth.value * OPEN_RATIO;
+      const base = drawerOpen.value ? maxOpen : 0;
       const next = base + event.translationX;
-      translateX.value = Math.min(0, Math.max(-DRAWER_WIDTH, next));
+      translateX.value = Math.min(0, Math.max(maxOpen, next));
     })
     .onEnd((event) => {
-      const shouldOpen =
-        Math.abs(translateX.value) > OPEN_THRESHOLD || event.velocityX < -500;
-      translateX.value = withSpring(shouldOpen ? -DRAWER_WIDTH : 0, {
-        damping: 18,
-        stiffness: 220,
+      const maxOpen = -cardWidth.value * OPEN_RATIO;
+      const draggedFar =
+        Math.abs(translateX.value - (drawerOpen.value ? maxOpen : 0)) > Math.abs(maxOpen) * 0.15;
+      const fastFlick = Math.abs(event.velocityX) > 400;
+      const shouldToggle = draggedFar || fastFlick;
+      const shouldOpen = shouldToggle ? !drawerOpen.value : drawerOpen.value;
+
+      translateX.value = withSpring(shouldOpen ? maxOpen : 0, {
+        damping: 20,
+        stiffness: 250,
       });
       if (shouldOpen !== drawerOpen.value) {
         drawerOpen.value = shouldOpen;
@@ -57,51 +131,44 @@ export default function SwipeableOption({ label, romaji, state, onPress }: Swipe
       }
     });
 
-  const cardStyle = useAnimatedStyle(() => ({
+  const composedGesture = Gesture.Race(panGesture, tapGesture);
+
+  const frontStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
 
-  const drawerStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(1, Math.abs(translateX.value) / DRAWER_WIDTH + 0.15),
-  }));
-
-  const stateStyle =
-    state === 'correct'
-      ? styles.cardCorrect
-      : state === 'incorrect'
-      ? styles.cardIncorrect
-      : styles.cardIdle;
+  const backLayerStyle = useAnimatedStyle(() => {
+    const maxOpen = cardWidth.value * OPEN_RATIO || 1;
+    return { opacity: Math.min(1, Math.abs(translateX.value) / maxOpen) };
+  });
 
   return (
     <View style={styles.wrapper} onLayout={onLayout}>
-      {/* Romaji drawer sits behind the card, revealed as the card slides left */}
-      <Animated.View style={[styles.drawer, drawerStyle]} pointerEvents="none">
-        <Text style={styles.drawerText} numberOfLines={1}>
+      <Animated.View style={[styles.backLayer, { backgroundColor: colors.card }, backLayerStyle]} pointerEvents="none">
+        <Text
+          style={[styles.romajiText, { color: colors.primary }]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+          minimumFontScale={0.65}
+        >
           {romaji}
         </Text>
       </Animated.View>
 
-      <Animated.View style={[styles.card, stateStyle, cardStyle]}>
-        <Pressable
-          style={styles.pressableArea}
-          onPress={onPress}
-          disabled={state === 'disabled' || state === 'correct' || state === 'incorrect'}
-          hitSlop={4}
-        >
-          <Text style={styles.label} numberOfLines={2}>
-            {label}
-          </Text>
-        </Pressable>
-
-        {/* Drag handle / tab indicator */}
-        <GestureDetector gesture={panGesture}>
-          <View style={styles.tab}>
-            <View style={styles.tabDot} />
-            <View style={styles.tabDot} />
-            <View style={styles.tabDot} />
-          </View>
-        </GestureDetector>
-      </Animated.View>
+      <GestureDetector gesture={composedGesture}>
+        <View style={styles.touchArea}>
+          <Animated.View style={[styles.card, stateStyle, frontStyle]}>
+            <View style={styles.japaneseLabelWrap}>
+              <JapaneseText text={label} reading={reading} fontSize={19} numberOfLines={2} color={colors.textPrimary} />
+            </View>
+            <View style={styles.hint} pointerEvents="none">
+              <View style={[styles.hintDot, { backgroundColor: colors.border }]} />
+              <View style={[styles.hintDot, { backgroundColor: colors.border }]} />
+              <View style={[styles.hintDot, { backgroundColor: colors.border }]} />
+            </View>
+          </Animated.View>
+        </View>
+      </GestureDetector>
     </View>
   );
 }
@@ -111,28 +178,27 @@ const styles = StyleSheet.create({
     width: '100%',
     marginVertical: 6,
   },
-  drawer: {
+  backLayer: {
     position: 'absolute',
+    left: 0,
     right: 0,
     top: 0,
     bottom: 0,
-    width: DRAWER_WIDTH,
-    backgroundColor: '#FFE8B3',
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 20,
   },
-  drawerText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#7A5200',
+  romajiText: {
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   card: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    alignItems: 'center',
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
     minHeight: 64,
     shadowColor: '#000',
     shadowOpacity: 0.06,
@@ -140,43 +206,31 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  cardIdle: {
-    borderWidth: 1.5,
-    borderColor: '#F0EEF6',
+  touchArea: {
+    width: '100%',
+    minHeight: 64,
   },
-  cardCorrect: {
-    borderWidth: 1.5,
-    borderColor: '#7ED9A4',
-    backgroundColor: '#E8FBF0',
-  },
-  cardIncorrect: {
-    borderWidth: 1.5,
-    borderColor: '#F3A6A6',
-    backgroundColor: '#FDECEC',
-  },
-  pressableArea: {
+  label: {
     flex: 1,
-    justifyContent: 'center',
+    fontSize: 19,
+    fontWeight: '600',
     paddingVertical: 14,
     paddingHorizontal: 18,
   },
-  label: {
-    fontSize: 19,
-    fontWeight: '600',
-    color: '#2B2B36',
+  japaneseLabelWrap: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
   },
-  tab: {
-    width: 34,
+  hint: {
+    paddingRight: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    borderLeftWidth: 1,
-    borderLeftColor: '#F0EEF6',
   },
-  tabDot: {
+  hintDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#C9C6D6',
-    marginVertical: 2,
+    marginVertical: 1.5,
   },
 });

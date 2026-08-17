@@ -1,10 +1,9 @@
 // components/CategoryFilter.tsx
-// Horizontal scrollable chip selector, used for both frequency tiers
-// and thematic travel categories on the Home screen.
 
 import React from 'react';
 import { StyleSheet, Text, Pressable, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { ThemeColors } from '../theme/theme';
 
 interface ChipOption {
   key: string;
@@ -15,15 +14,10 @@ interface CategoryFilterProps {
   options: ChipOption[];
   selectedKeys: string[];
   onToggle: (key: string) => void;
-  multiSelect?: boolean;
+  colors: ThemeColors;
 }
 
-export default function CategoryFilter({
-  options,
-  selectedKeys,
-  onToggle,
-  multiSelect = true,
-}: CategoryFilterProps) {
+export default function CategoryFilter({ options, selectedKeys, onToggle, colors }: CategoryFilterProps) {
   const handlePress = (key: string) => {
     Haptics.selectionAsync().catch(() => {});
     onToggle(key);
@@ -41,9 +35,14 @@ export default function CategoryFilter({
           <Pressable
             key={opt.key}
             onPress={() => handlePress(opt.key)}
-            style={[styles.chip, active && styles.chipActive]}
+            style={[
+              styles.chip,
+              { backgroundColor: active ? colors.primary : colors.card },
+            ]}
           >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
+            <Text style={[styles.chipText, { color: active ? colors.textOnPrimary : colors.textSecondary }]}>
+              {opt.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -60,18 +59,10 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     paddingHorizontal: 16,
     borderRadius: 18,
-    backgroundColor: '#F4F2FF',
     marginRight: 8,
-  },
-  chipActive: {
-    backgroundColor: '#5A4FCF',
   },
   chipText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#8B85B8',
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
   },
 });

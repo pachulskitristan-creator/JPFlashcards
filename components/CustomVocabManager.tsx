@@ -1,7 +1,4 @@
 // components/CustomVocabManager.tsx
-// Lets the user add their own English / Japanese / Romaji cards.
-// Entries are persisted and merged into the main vocab pool by the
-// caller (see App.tsx), so they show up in quizzes automatically.
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -17,21 +14,23 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { ALL_CATEGORIES, TravelCategory, VocabWord } from '../types';
+import { VocabWord } from '../types';
 import { addCustomWord, deleteCustomWord, loadCustomVocab } from '../services/storageService';
-import CategoryFilter from './CategoryFilter';
+import { ThemeColors } from '../theme/theme';
 
 interface CustomVocabManagerProps {
   visible: boolean;
   onClose: () => void;
-  onChanged: (words: VocabWord[]) => void; // called whenever the custom list changes
+  onChanged: (words: VocabWord[]) => void;
+  colors: ThemeColors;
 }
 
-export default function CustomVocabManager({ visible, onClose, onChanged }: CustomVocabManagerProps) {
+export default function CustomVocabManager({ visible, onClose, onChanged, colors }: CustomVocabManagerProps) {
   const [english, setEnglish] = useState('');
   const [japanese, setJapanese] = useState('');
   const [romaji, setRomaji] = useState('');
-  const [category, setCategory] = useState<TravelCategory>('Greetings & Essentials');
+  const [tagInput, setTagInput] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [customWords, setCustomWords] = useState<VocabWord[]>([]);
 
   useEffect(() => {
@@ -44,6 +43,16 @@ export default function CustomVocabManager({ visible, onClose, onChanged }: Cust
     setEnglish('');
     setJapanese('');
     setRomaji('');
+    setTagInput('');
+    setTags([]);
+  };
+
+  const handleAddTag = () => {
+    const clean = tagInput.trim();
+    if (clean && !tags.some((t) => t.toLowerCase() === clean.toLowerCase())) {
+      setTags((prev) => [...prev, clean]);
+    }
+    setTagInput('');
   };
 
   const handleSave = async () => {
@@ -55,7 +64,7 @@ export default function CustomVocabManager({ visible, onClose, onChanged }: Cust
       japanese: japanese.trim(),
       romaji: romaji.trim(),
       tier: 1,
-      categories: [category],
+      categories: tags,
       isCustom: true,
     };
 
@@ -75,71 +84,96 @@ export default function CustomVocabManager({ visible, onClose, onChanged }: Cust
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>My Vocabulary</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>My Vocabulary</Text>
           <Pressable onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={26} color="#8B85B8" />
+            <Ionicons name="close" size={26} color={colors.textSecondary} />
           </Pressable>
         </View>
 
         <View style={styles.form}>
           <TextInput
             placeholder="English"
-            placeholderTextColor="#B3AEDB"
+            placeholderTextColor={colors.textSecondary}
             value={english}
             onChangeText={setEnglish}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.card, color: colors.textPrimary }]}
           />
           <TextInput
             placeholder="Japanese (Kanji/Kana)"
-            placeholderTextColor="#B3AEDB"
+            placeholderTextColor={colors.textSecondary}
             value={japanese}
             onChangeText={setJapanese}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.card, color: colors.textPrimary }]}
           />
           <TextInput
             placeholder="Romaji"
-            placeholderTextColor="#B3AEDB"
+            placeholderTextColor={colors.textSecondary}
             value={romaji}
             onChangeText={setRomaji}
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.card, color: colors.textPrimary }]}
           />
 
-          <Text style={styles.sectionLabel}>Category</Text>
-          <CategoryFilter
-            options={ALL_CATEGORIES.map((c) => ({ key: c, label: c }))}
-            selectedKeys={[category]}
-            onToggle={(key) => setCategory(key as TravelCategory)}
-          />
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Tags (optional)</Text>
+          <View style={styles.tagInputRow}>
+            <TextInput
+              placeholder="e.g. Food & Restaurants"
+              placeholderTextColor={colors.textSecondary}
+              value={tagInput}
+              onChangeText={setTagInput}
+              onSubmitEditing={handleAddTag}
+              returnKeyType="done"
+              style={[styles.input, styles.tagInput, { backgroundColor: colors.card, color: colors.textPrimary }]}
+            />
+            <Pressable style={[styles.tagAddButton, { backgroundColor: colors.primary }]} onPress={handleAddTag}>
+              <Ionicons name="add" size={20} color="#FFFFFF" />
+            </Pressable>
+          </View>
+          {tags.length > 0 ? (
+            <View style={styles.tagChipWrap}>
+              {tags.map((tag) => (
+                <View key={tag} style={[styles.tagChip, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.tagChipText}>{tag}</Text>
+                  <Pressable onPress={() => setTags((prev) => prev.filter((t) => t !== tag))} hitSlop={6}>
+                    <Ionicons name="close" size={13} color="#FFFFFF" />
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
-          <Pressable style={styles.saveButton} onPress={handleSave}>
+          <Pressable style={[styles.saveButton, { backgroundColor: colors.primary }]} onPress={handleSave}>
             <Text style={styles.saveButtonText}>Add Card</Text>
           </Pressable>
         </View>
 
-        <Text style={styles.sectionLabel}>Your Cards ({customWords.length})</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          Your Cards ({customWords.length})
+        </Text>
         <FlatList
           data={customWords}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingBottom: 24 }}
           renderItem={({ item }) => (
-            <View style={styles.wordRow}>
+            <View style={[styles.wordRow, { backgroundColor: colors.surfaceAlt }]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.wordJapanese}>{item.japanese}</Text>
-                <Text style={styles.wordSub}>
+                <Text style={[styles.wordJapanese, { color: colors.textPrimary }]}>{item.japanese}</Text>
+                <Text style={[styles.wordSub, { color: colors.textSecondary }]}>
                   {item.romaji} · {item.english}
                 </Text>
               </View>
               <Pressable onPress={() => handleDelete(item.id)} hitSlop={10}>
-                <Ionicons name="trash-outline" size={20} color="#F3A6A6" />
+                <Ionicons name="trash-outline" size={20} color={colors.error} />
               </Pressable>
             </View>
           )}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No custom cards yet — add one above.</Text>
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              No custom cards yet — add one above.
+            </Text>
           }
         />
       </KeyboardAvoidingView>
@@ -150,7 +184,6 @@ export default function CustomVocabManager({ visible, onClose, onChanged }: Cust
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FCFBFF',
     paddingHorizontal: 20,
     paddingTop: 60,
   },
@@ -163,30 +196,60 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#2B2B36',
   },
   form: {
     marginBottom: 24,
   },
   input: {
-    backgroundColor: '#F4F2FF',
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#2B2B36',
     marginBottom: 10,
+  },
+  tagInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  tagInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  tagAddButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagChipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+  },
+  tagChipText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   sectionLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#8B85B8',
     textTransform: 'uppercase',
     marginBottom: 8,
     marginTop: 4,
   },
   saveButton: {
-    backgroundColor: '#5A4FCF',
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: 'center',
@@ -200,7 +263,6 @@ const styles = StyleSheet.create({
   wordRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9F8FF',
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -209,16 +271,13 @@ const styles = StyleSheet.create({
   wordJapanese: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#2B2B36',
   },
   wordSub: {
     fontSize: 13,
-    color: '#8B85B8',
     marginTop: 2,
   },
   emptyText: {
     fontSize: 14,
-    color: '#B3AEDB',
     textAlign: 'center',
     marginTop: 20,
   },
