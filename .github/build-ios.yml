@@ -1,0 +1,49 @@
+name: Build Unsigned iOS IPA
+
+on: 
+  workflow_dispatch: # Allows you to trigger this manually on GitHub
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Expo Prebuild
+        run: npx expo prebuild --platform ios
+        
+      - name: Install CocoaPods
+        run: cd ios && pod install
+        
+      - name: Build Unsigned App
+        run: |
+          cd ios
+          # Note: If your app name differs in the ios folder, replace JPFlashcards below
+          xcodebuild -workspace JPFlashcards.xcworkspace \
+            -scheme JPFlashcards \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO
+            
+      - name: Package into IPA
+        run: |
+          mkdir Payload
+          mv ios/build/Build/Products/Release-iphoneos/JPFlashcards.app Payload/
+          zip -r JPFlashcards.ipa Payload
+          
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: JPFlashcards-IPA
+          path: JPFlashcards.ipa
