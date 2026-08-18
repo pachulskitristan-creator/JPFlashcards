@@ -1,73 +1,62 @@
 // screens/AchievementsScreen.tsx
+// Persistent tab now, not a Modal overlay.
 
 import React from 'react';
-import { Modal, View, Text, Pressable, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ACHIEVEMENTS } from '../data/achievements';
 import { GamificationState } from '../types';
 import { ThemeColors } from '../theme/theme';
 
 interface AchievementsScreenProps {
-  visible: boolean;
-  onClose: () => void;
   gamification: GamificationState;
   colors: ThemeColors;
 }
 
-export default function AchievementsScreen({
-  visible,
-  onClose,
-  gamification,
-  colors,
-}: AchievementsScreenProps) {
+export default function AchievementsScreen({ gamification, colors }: AchievementsScreenProps) {
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Achievements</Text>
-          <Pressable onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={26} color={colors.textSecondary} />
-          </Pressable>
-        </View>
-        <FlatList
-          data={ACHIEVEMENTS}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.row}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
-            const unlocked = gamification.unlockedAchievementIds.includes(item.id);
-            return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Achievements</Text>
+      </View>
+      <FlatList
+        data={ACHIEVEMENTS}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item }) => {
+          const unlocked = gamification.unlockedAchievementIds.includes(item.id);
+          return (
+            <View
+              style={[
+                styles.badge,
+                { backgroundColor: colors.surface, borderColor: colors.border, opacity: unlocked ? 1 : 0.45 },
+              ]}
+            >
               <View
                 style={[
-                  styles.badge,
-                  { backgroundColor: colors.surface, borderColor: colors.border, opacity: unlocked ? 1 : 0.45 },
+                  styles.iconCircle,
+                  { backgroundColor: unlocked ? colors.primary : colors.border },
                 ]}
               >
-                <View
-                  style={[
-                    styles.iconCircle,
-                    { backgroundColor: unlocked ? colors.primary : colors.border },
-                  ]}
-                >
-                  <Ionicons
-                    name={item.icon as any}
-                    size={26}
-                    color={unlocked ? '#FFFFFF' : colors.textSecondary}
-                  />
-                </View>
-                <Text style={[styles.badgeTitle, { color: colors.textPrimary }]} numberOfLines={2}>
-                  {item.title}
-                </Text>
-                <Text style={[styles.badgeDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-                  {item.description}
-                </Text>
+                <Ionicons
+                  name={item.icon as any}
+                  size={26}
+                  color={unlocked ? '#FFFFFF' : colors.textSecondary}
+                />
               </View>
-            );
-          }}
-        />
-      </View>
-    </Modal>
+              <Text style={[styles.badgeTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+                {item.title}
+              </Text>
+              <Text style={[styles.badgeDesc, { color: colors.textSecondary }]} numberOfLines={2}>
+                {item.description}
+              </Text>
+            </View>
+          );
+        }}
+      />
+    </View>
   );
 }
 

@@ -1,36 +1,32 @@
 // screens/TaggedWordsScreen.tsx
-// Two-level view: a folder list of tags (with word counts), tap one to
-// drill into the actual words carrying that tag. Gives quick access to
-// whatever the user has been tagging during quizzes.
+// Persistent tab, not a Modal overlay. Two levels: folder list of tags,
+// drill into a tag to see its words. Swipe left on a folder to delete
+// that tag everywhere; swipe left on a word (inside a folder) to
+// remove just that word's tag.
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, View, Text, Pressable, StyleSheet, FlatList } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UserTagStore, VocabWord } from '../types';
-import { getTagCounts, getWordsForTag } from '../services/tagsService';
+import { getTagCounts, getWordsForTag, removeTagEverywhere, removeTagFromWord } from '../services/tagsService';
 import { speakJapanese } from '../services/ttsService';
+import SwipeToDeleteRow from '../components/SwipeToDeleteRow';
 import { ThemeColors } from '../theme/theme';
 
 interface TaggedWordsScreenProps {
-  visible: boolean;
-  onClose: () => void;
   allWords: VocabWord[];
   userTags: UserTagStore;
+  onTagsChanged: (next: UserTagStore) => void;
   colors: ThemeColors;
 }
 
 export default function TaggedWordsScreen({
-  visible,
-  onClose,
   allWords,
   userTags,
+  onTagsChanged,
   colors,
 }: TaggedWordsScreenProps) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!visible) setSelectedTag(null);
-  }, [visible]);
 
   const tagCounts = useMemo(() => getTagCounts(allWords, userTags), [allWords, userTags]);
   const wordsForTag = useMemo(
@@ -38,35 +34,44 @@ export default function TaggedWordsScreen({
     [selectedTag, allWords, userTags]
   );
 
-  return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.header}>
-          {selectedTag ? (
-            <Pressable style={styles.backRow} onPress={() => setSelectedTag(null)}>
-              <Ionicons name="chevron-back" size={22} color={colors.primary} />
-              <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>
-                {selectedTag}
-              </Text>
-            </Pressable>
-          ) : (
-            <Text style={[styles.title, { color: colors.textPrimary }]}>Tagged Words</Text>
-          )}
-          <Pressable onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={26} color={colors.textSecondary} />
-          </Pressable>
-        </View>
+  const handleDeleteTag = async (tag: string) => {
+    const updated = await removeTagEverywhere(tag, allWords);
+    onTagsChanged(updated);
+    if (selectedTag === tag) setSelectedTag(null);
+  };
 
-        {!selectedTag ? (
-          <FlatList
-            data={tagCounts}
-            keyExtractor={(item) => item.tag}
-            contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[styles.folderRow, { backgroundColor: colors.surfaceAlt }]}
-                onPress={() => setSelectedTag(item.tag)}
-              >
+  const handleRemoveWordTag = async (wordId: string, tag: string) => {
+    const updated = await removeTagFromWord(wordId, tag);
+    onTagsChanged(updated);
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        {selectedTag ? (
+          <Pressable style={styles.backRow} onPress={() => setSelectedTag(null)}>
+            <Ionicons name="chevron-back" size={22} color={colors.primary} />
+            <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>
+              {selectedTag}
+            </Text>
+          </Pressable>
+        ) : (
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Tagged Words</Text>
+        )}
+      </View>
+
+      {!selectedTag ? (
+        <FlatList
+          data={tagCounts}
+          keyExtractor={(item) => item.tag}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <SwipeToDeleteRow
+              onDelete={() => handleDeleteTag(item.tag)}
+              onPress={() => setSelectedTag(item.tag)}
+              colors={colors}
+            >
+              <View style={[styles.folderRow, { backgroundColor: colors.surfaceAlt }]}>
                 <View style={[styles.folderIcon, { backgroundColor: colors.card }]}>
                   <Ionicons name="folder" size={20} color={colors.primary} />
                 </View>
@@ -75,36 +80,50 @@ export default function TaggedWordsScreen({
                 </Text>
                 <Text style={[styles.folderCount, { color: colors.textSecondary }]}>{item.count}</Text>
                 <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-              </Pressable>
-            )}
-            ListEmptyComponent={
-              <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                No tagged words yet — tag words during a quiz and they'll show up here.
-              </Text>
-            }
-          />
-        ) : (
-          <FlatList
-            data={wordsForTag}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => (
-              <View style={[styles.wordRow, { backgroundColor: colors.surfaceAlt }]}>
-                <View style={{ flex: 1 }}>
+              </View>
+            </SwipeToDeleteRow>
+          )}
+          ListEmptyComponent={
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              No tagged words yet — tag words during a quiz and they'll show up here.
+            </Text>
+          }
+        />
+      ) : (
+        <FlatList
+          data={wordsForTag}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <View style={styles.wordRowOuter}>
+              <SwipeToDeleteRow
+                onDelete={() => handleRemoveWordTag(item.id, selectedTag)}
+                colors={colors}
+              >
+                <View style={[styles.wordRow, { backgroundColor: colors.surfaceAlt }]}>
                   <Text style={[styles.wordJapanese, { color: colors.textPrimary }]}>{item.japanese}</Text>
                   <Text style={[styles.wordSub, { color: colors.textSecondary }]}>
                     {item.romaji} · {item.english}
                   </Text>
                 </View>
-                <Pressable onPress={() => speakJapanese(item.japanese)} hitSlop={8}>
-                  <Ionicons name="volume-high-outline" size={20} color={colors.primary} />
-                </Pressable>
-              </View>
-            )}
-          />
-        )}
-      </View>
-    </Modal>
+              </SwipeToDeleteRow>
+              <Pressable
+                style={[styles.speakerButton, { backgroundColor: colors.surfaceAlt }]}
+                onPress={() => speakJapanese(item.japanese)}
+                hitSlop={8}
+              >
+                <Ionicons name="volume-high-outline" size={20} color={colors.primary} />
+              </Pressable>
+            </View>
+          )}
+          ListEmptyComponent={
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+              No words left in this tag.
+            </Text>
+          }
+        />
+      )}
+    </View>
   );
 }
 
@@ -115,17 +134,12 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 20,
   },
   backRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    flex: 1,
-    marginRight: 12,
   },
   title: {
     fontSize: 22,
@@ -160,13 +174,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 2,
   },
-  wordRow: {
+  wordRowOuter: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  wordRow: {
+    flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 14,
-    marginBottom: 8,
+  },
+  speakerButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   wordJapanese: {
     fontSize: 17,

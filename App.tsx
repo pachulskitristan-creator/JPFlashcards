@@ -1,7 +1,12 @@
 // App.tsx
+// Navigation model: a persistent BottomTabBar switches between 5 tabs
+// (Home/Statistics/Tags/Achievements/Settings). Starting a quiz goes
+// full-screen and hides the tab bar entirely — the same "now playing
+// takes over the screen" pattern Apple Music uses — then returns to
+// whichever tab you were on when you exit.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -14,6 +19,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import TaggedWordsScreen from './screens/TaggedWordsScreen';
 import CustomVocabManager from './components/CustomVocabManager';
 import AchievementUnlockOverlay from './components/AchievementUnlockOverlay';
+import BottomTabBar, { TabKey } from './components/BottomTabBar';
 
 import { VOCAB_DATABASE } from './data/vocabDatabase';
 import { loadCustomVocab } from './services/storageService';
@@ -27,17 +33,12 @@ import {
 } from './services/gamificationService';
 import { checkForNewlyUnlocked } from './services/achievementsEngine';
 
-type Screen = 'home' | 'quiz';
-
 function AppInner() {
   const { colors, isDark, themePreference, setThemePreference } = useTheme();
 
-  const [screen, setScreen] = useState<Screen>('home');
+  const [activeTab, setActiveTab] = useState<TabKey>('home');
+  const [quizActive, setQuizActive] = useState(false);
   const [vocabManagerVisible, setVocabManagerVisible] = useState(false);
-  const [achievementsVisible, setAchievementsVisible] = useState(false);
-  const [statisticsVisible, setStatisticsVisible] = useState(false);
-  const [settingsVisible, setSettingsVisible] = useState(false);
-  const [taggedWordsVisible, setTaggedWordsVisible] = useState(false);
 
   const [customWords, setCustomWords] = useState<VocabWord[]>([]);
   const [userTags, setUserTags] = useState<UserTagStore>({});
@@ -74,10 +75,6 @@ function AppInner() {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
-  const refreshUserTags = () => {
-    loadUserTags().then(setUserTags);
-  };
-
   const applyGamificationUpdate = async (next: GamificationState) => {
     const newlyUnlocked = checkForNewlyUnlocked(next);
     const withUnlocks = newlyUnlocked.length
@@ -94,77 +91,72 @@ function AppInner() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      {screen === 'home' ? (
-        <HomeScreen
-          allWords={allWords}
-          userTags={userTags}
-          selectedTiers={selectedTiers}
-          onToggleTier={toggleTier}
-          selectedTags={selectedTags}
-          onToggleTag={toggleTag}
-          mode={mode}
-          onSetMode={setMode}
-          wordCount={filteredWords.length}
-          onStart={() => setScreen('quiz')}
-          onOpenVocabManager={() => setVocabManagerVisible(true)}
-          onOpenAchievements={() => setAchievementsVisible(true)}
-          onOpenStatistics={() => setStatisticsVisible(true)}
-          onOpenTaggedWords={() => setTaggedWordsVisible(true)}
-          onOpenSettings={() => setSettingsVisible(true)}
-          gamification={gamification}
-          rollJustIncreased={rollJustIncreased}
-          colors={colors}
-        />
-      ) : (
+      {quizActive ? (
         <QuizScreen
           words={filteredWords}
           allWordsForTagSuggestions={allWords}
           mode={mode}
           activeTierCount={Math.max(1, selectedTiers.length)}
           onExit={() => {
-            setScreen('home');
-            refreshUserTags();
+            setQuizActive(false);
+            loadUserTags().then(setUserTags);
           }}
           gamification={gamification}
           onGamificationUpdate={applyGamificationUpdate}
           onRollIncreaseFlag={setRollJustIncreased}
           colors={colors}
         />
+      ) : (
+        <>
+          <View style={styles.tabContent}>
+            {activeTab === 'home' ? (
+              <HomeScreen
+                allWords={allWords}
+                userTags={userTags}
+                selectedTiers={selectedTiers}
+                onToggleTier={toggleTier}
+                selectedTags={selectedTags}
+                onToggleTag={toggleTag}
+                mode={mode}
+                onSetMode={setMode}
+                wordCount={filteredWords.length}
+                onStart={() => setQuizActive(true)}
+                onOpenVocabManager={() => setVocabManagerVisible(true)}
+                gamification={gamification}
+                rollJustIncreased={rollJustIncreased}
+                colors={colors}
+              />
+            ) : null}
+            {activeTab === 'statistics' ? (
+              <StatisticsScreen allWords={allWords} selectedTiers={selectedTiers} colors={colors} />
+            ) : null}
+            {activeTab === 'tags' ? (
+              <TaggedWordsScreen
+                allWords={allWords}
+                userTags={userTags}
+                onTagsChanged={setUserTags}
+                colors={colors}
+              />
+            ) : null}
+            {activeTab === 'achievements' ? (
+              <AchievementsScreen gamification={gamification} colors={colors} />
+            ) : null}
+            {activeTab === 'settings' ? (
+              <SettingsScreen
+                colors={colors}
+                themePreference={themePreference}
+                onSetThemePreference={setThemePreference}
+              />
+            ) : null}
+          </View>
+          <BottomTabBar activeTab={activeTab} onSelectTab={setActiveTab} colors={colors} />
+        </>
       )}
 
       <CustomVocabManager
         visible={vocabManagerVisible}
         onClose={() => setVocabManagerVisible(false)}
         onChanged={setCustomWords}
-        colors={colors}
-      />
-      <AchievementsScreen
-        visible={achievementsVisible}
-        onClose={() => setAchievementsVisible(false)}
-        gamification={gamification}
-        colors={colors}
-      />
-      <StatisticsScreen
-        visible={statisticsVisible}
-        onClose={() => setStatisticsVisible(false)}
-        allWords={allWords}
-        colors={colors}
-      />
-      <SettingsScreen
-        visible={settingsVisible}
-        onClose={() => setSettingsVisible(false)}
-        colors={colors}
-        themePreference={themePreference}
-        onSetThemePreference={setThemePreference}
-      />
-      <TaggedWordsScreen
-        visible={taggedWordsVisible}
-        onClose={() => {
-          setTaggedWordsVisible(false);
-          refreshUserTags();
-        }}
-        allWords={allWords}
-        userTags={userTags}
         colors={colors}
       />
       {unlockQueue.length > 0 ? (
@@ -192,6 +184,9 @@ export default function App() {
 
 const styles = StyleSheet.create({
   safeArea: {
+    flex: 1,
+  },
+  tabContent: {
     flex: 1,
   },
 });

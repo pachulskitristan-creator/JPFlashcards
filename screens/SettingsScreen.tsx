@@ -1,15 +1,14 @@
 // screens/SettingsScreen.tsx
+// Persistent tab now, not a Modal overlay.
 
 import React from 'react';
-import { Modal, View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ThemeColors } from '../theme/theme';
 import { ThemePreference } from '../contexts/ThemeContext';
 
 interface SettingsScreenProps {
-  visible: boolean;
-  onClose: () => void;
   colors: ThemeColors;
   themePreference: ThemePreference;
   onSetThemePreference: (pref: ThemePreference) => void;
@@ -28,8 +27,6 @@ const COMING_SOON_ROWS: { label: string; icon: keyof typeof Ionicons.glyphMap }[
 ];
 
 export default function SettingsScreen({
-  visible,
-  onClose,
   colors,
   themePreference,
   onSetThemePreference,
@@ -40,56 +37,51 @@ export default function SettingsScreen({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Settings</Text>
-          <Pressable onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={26} color={colors.textSecondary} />
-          </Pressable>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Settings</Text>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Appearance</Text>
+        <View style={styles.themeRow}>
+          {THEME_OPTIONS.map((opt) => {
+            const active = themePreference === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                style={[
+                  styles.themeOption,
+                  { backgroundColor: active ? colors.primary : colors.card },
+                ]}
+                onPress={() => selectTheme(opt.key)}
+              >
+                <Ionicons name={opt.icon} size={20} color={active ? '#FFFFFF' : colors.textPrimary} />
+                <Text
+                  style={[
+                    styles.themeOptionText,
+                    { color: active ? '#FFFFFF' : colors.textPrimary },
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Appearance</Text>
-          <View style={styles.themeRow}>
-            {THEME_OPTIONS.map((opt) => {
-              const active = themePreference === opt.key;
-              return (
-                <Pressable
-                  key={opt.key}
-                  style={[
-                    styles.themeOption,
-                    { backgroundColor: active ? colors.primary : colors.card },
-                  ]}
-                  onPress={() => selectTheme(opt.key)}
-                >
-                  <Ionicons name={opt.icon} size={20} color={active ? '#FFFFFF' : colors.textPrimary} />
-                  <Text
-                    style={[
-                      styles.themeOptionText,
-                      { color: active ? '#FFFFFF' : colors.textPrimary },
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Account</Text>
-          {COMING_SOON_ROWS.map((row) => (
-            <View key={row.label} style={[styles.row, { backgroundColor: colors.surfaceAlt }]}>
-              <Ionicons name={row.icon} size={20} color={colors.textSecondary} />
-              <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>{row.label}</Text>
-              <View style={[styles.soonBadge, { backgroundColor: colors.border }]}>
-                <Text style={[styles.soonBadgeText, { color: colors.textSecondary }]}>Soon</Text>
-              </View>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Account</Text>
+        {COMING_SOON_ROWS.map((row) => (
+          <View key={row.label} style={[styles.row, { backgroundColor: colors.surfaceAlt }]}>
+            <Ionicons name={row.icon} size={20} color={colors.textSecondary} />
+            <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>{row.label}</Text>
+            <View style={[styles.soonBadge, { backgroundColor: colors.border }]}>
+              <Text style={[styles.soonBadgeText, { color: colors.textSecondary }]}>Soon</Text>
             </View>
-          ))}
-        </ScrollView>
-      </View>
-    </Modal>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 

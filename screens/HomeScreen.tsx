@@ -32,10 +32,6 @@ interface HomeScreenProps {
   wordCount: number;
   onStart: () => void;
   onOpenVocabManager: () => void;
-  onOpenAchievements: () => void;
-  onOpenStatistics: () => void;
-  onOpenTaggedWords: () => void;
-  onOpenSettings: () => void;
   gamification: GamificationState;
   rollJustIncreased: boolean;
   colors: ThemeColors;
@@ -61,10 +57,6 @@ export default function HomeScreen({
   wordCount,
   onStart,
   onOpenVocabManager,
-  onOpenAchievements,
-  onOpenStatistics,
-  onOpenTaggedWords,
-  onOpenSettings,
   gamification,
   rollJustIncreased,
   colors,
@@ -87,26 +79,10 @@ export default function HomeScreen({
     >
       <View style={[styles.content, { width: contentWidth }]}>
         <View style={styles.topRow}>
-          <View>
-            <Text style={[styles.title, { color: colors.textPrimary }]}>単語カード</Text>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Japanese Flashcards for Travelers
-            </Text>
-          </View>
-          <View style={styles.iconRow}>
-            <Pressable onPress={onOpenStatistics} style={[styles.iconButton, { backgroundColor: colors.card }]} hitSlop={6}>
-              <Ionicons name="stats-chart-outline" size={19} color={colors.textPrimary} />
-            </Pressable>
-            <Pressable onPress={onOpenTaggedWords} style={[styles.iconButton, { backgroundColor: colors.card }]} hitSlop={6}>
-              <Ionicons name="folder-outline" size={19} color={colors.textPrimary} />
-            </Pressable>
-            <Pressable onPress={onOpenAchievements} style={[styles.iconButton, { backgroundColor: colors.card }]} hitSlop={6}>
-              <Ionicons name="trophy-outline" size={19} color={colors.textPrimary} />
-            </Pressable>
-            <Pressable onPress={onOpenSettings} style={[styles.iconButton, { backgroundColor: colors.card }]} hitSlop={6}>
-              <Ionicons name="settings-outline" size={19} color={colors.textPrimary} />
-            </Pressable>
-          </View>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>単語カード</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            Japanese Flashcards for Travelers
+          </Text>
         </View>
 
         <View style={styles.gamificationBlock}>
@@ -207,9 +183,6 @@ const styles = StyleSheet.create({
     maxWidth: 560,
   },
   topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
     marginBottom: 20,
   },
   title: {
@@ -219,17 +192,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     marginTop: 4,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   gamificationBlock: {
     marginBottom: 6,

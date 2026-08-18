@@ -1,32 +1,31 @@
 // screens/StatisticsScreen.tsx
-// Overall "% known" as a circular ring (the headline stat), plus a
-// per-Vocabulary-Range breakdown below as simple bars.
+// Now a persistent tab (no Modal/visible/onClose) instead of an
+// overlay. Shows the overall "% known" ring, then a "2 dots on a
+// line" progress row for each Vocabulary Range the user currently has
+// selected on the Home tab — falls back to showing every range with
+// any data if none are selected, so it's never just blank.
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { VocabWord, SRSStore, getAllTiers, getTierLabel } from '../types';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { VocabWord, SRSStore, FrequencyTier, getAllTiers, getTierLabel } from '../types';
 import { loadSRSStore } from '../services/storageService';
 import { isWordKnown } from '../services/srsEngine';
 import CircularProgress from '../components/CircularProgress';
-import PercentBar from '../components/PercentBar';
+import RangeProgressLine from '../components/RangeProgressLine';
 import { ThemeColors } from '../theme/theme';
 
 interface StatisticsScreenProps {
-  visible: boolean;
-  onClose: () => void;
   allWords: VocabWord[];
+  selectedTiers: FrequencyTier[];
   colors: ThemeColors;
 }
 
-export default function StatisticsScreen({ visible, onClose, allWords, colors }: StatisticsScreenProps) {
+export default function StatisticsScreen({ allWords, selectedTiers, colors }: StatisticsScreenProps) {
   const [srsStore, setSrsStore] = useState<SRSStore>({});
 
   useEffect(() => {
-    if (visible) {
-      loadSRSStore().then(setSrsStore);
-    }
-  }, [visible]);
+    loadSRSStore().then(setSrsStore);
+  }, []);
 
   const { overallPercent, perTier, knownCount, totalCount } = useMemo(() => {
     const total = allWords.length;
@@ -51,50 +50,58 @@ export default function StatisticsScreen({ visible, onClose, allWords, colors }:
     };
   }, [allWords, srsStore]);
 
+  const tiersToShow = useMemo(() => {
+    if (selectedTiers.length > 0) return selectedTiers.slice().sort((a, b) => a - b);
+    return getAllTiers().filter((t) => perTier[t] && perTier[t].total > 0);
+  }, [selectedTiers, perTier]);
+
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>Statistics</Text>
-          <Pressable onPress={onClose} hitSlop={10}>
-            <Ionicons name="close" size={26} color={colors.textSecondary} />
-          </Pressable>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.textPrimary }]}>Statistics</Text>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.ringWrap}>
+          <CircularProgress
+            percent={overallPercent}
+            colors={colors}
+            centerLabel={`${Math.round(overallPercent)}%`}
+            centerSublabel="known"
+          />
+          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
+            {knownCount} of {totalCount} words known
+          </Text>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          <View style={styles.ringWrap}>
-            <CircularProgress
-              percent={overallPercent}
-              colors={colors}
-              centerLabel={`${Math.round(overallPercent)}%`}
-              centerSublabel="known"
-            />
-            <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
-              {knownCount} of {totalCount} words known
-            </Text>
-          </View>
-
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>By Vocabulary Range</Text>
-          {getAllTiers().map((tier) => {
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+          {selectedTiers.length > 0 ? 'Your Selected Ranges' : 'By Vocabulary Range'}
+        </Text>
+        {tiersToShow.length === 0 ? (
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            No range data yet — study a few cards first.
+          </Text>
+        ) : (
+          tiersToShow.map((tier) => {
             const stats = perTier[tier];
             if (!stats || stats.total === 0) return null;
             return (
-              <PercentBar
+              <RangeProgressLine
                 key={tier}
                 label={getTierLabel(tier)}
                 percent={(stats.known / stats.total) * 100}
                 colors={colors}
               />
             );
-          })}
+          })
+        )}
 
-          <Text style={[styles.footnote, { color: colors.textSecondary }]}>
-            A word counts as "known" once you've answered it correctly 10 times in a row, or you've
-            marked it "I know this" during a quiz.
-          </Text>
-        </ScrollView>
-      </View>
-    </Modal>
+        <Text style={[styles.footnote, { color: colors.textSecondary }]}>
+          A word counts as "known" once you've answered it correctly 10 times in a row, or you've
+          marked it "I know this" during a quiz.
+        </Text>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -105,9 +112,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 20,
   },
   title: {
@@ -130,7 +134,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  emptyText: {
+    fontSize: 13,
+    fontStyle: 'italic',
   },
   footnote: {
     fontSize: 12,

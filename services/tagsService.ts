@@ -51,6 +51,26 @@ export async function removeTagFromWord(wordId: string, tag: string): Promise<Us
   return updated;
 }
 
+/**
+ * Removes a tag from every word's USER tags. Note: if a word's tag came
+ * from the imported seed `categories` data rather than a user-added tag,
+ * it can't be removed this way — seed tags are static data, not stored
+ * per-user. In practice seed tags are sparse (see vocabDatabase.ts), so
+ * this covers the vast majority of real usage, but it's a real limitation
+ * worth knowing about rather than pretending "delete" is always total.
+ */
+export async function removeTagEverywhere(tag: string, words: VocabWord[]): Promise<UserTagStore> {
+  const store = await loadUserTags();
+  const updated = { ...store };
+  for (const w of words) {
+    if (updated[w.id]?.includes(tag)) {
+      updated[w.id] = updated[w.id].filter((t) => t !== tag);
+    }
+  }
+  await saveUserTags(updated);
+  return updated;
+}
+
 /** A word's tags for filtering/display purposes: seed tags + user tags, deduped. */
 export function getEffectiveTags(word: VocabWord, userTags: UserTagStore): string[] {
   const combined = [...word.categories, ...(userTags[word.id] ?? [])];
