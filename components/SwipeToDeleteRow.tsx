@@ -76,6 +76,16 @@ export default function SwipeToDeleteRow({ children, onDelete, onPress, colors }
     transform: [{ translateX: translateX.value }],
   }));
 
+  // FIX: the delete background used to be a plain always-rendered View,
+  // relying entirely on the sliding content to visually cover it at
+  // rest. That's fragile — any gap in coverage (padding/margin math,
+  // a child that doesn't stretch full-width, etc.) lets red bleed
+  // through even when nothing has been swiped. Tying opacity directly
+  // to swipe progress guarantees it's invisible at rest regardless.
+  const deleteBackgroundStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, Math.abs(translateX.value) / DELETE_WIDTH),
+  }));
+
   const handleDelete = () => {
     translateX.value = withTiming(-500, { duration: 200 });
     setTimeout(onDelete, 180);
@@ -83,12 +93,12 @@ export default function SwipeToDeleteRow({ children, onDelete, onPress, colors }
 
   return (
     <View style={styles.wrapper} onLayout={onLayout}>
-      <View style={[styles.deleteBackground, { backgroundColor: colors.error }]}>
+      <Animated.View style={[styles.deleteBackground, deleteBackgroundStyle, { backgroundColor: colors.error }]}>
         <Pressable style={styles.deleteButton} onPress={handleDelete} hitSlop={8}>
           <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
           <Text style={styles.deleteText}>Delete</Text>
         </Pressable>
-      </View>
+      </Animated.View>
 
       <GestureDetector gesture={composedGesture}>
         <View style={styles.touchArea}>
@@ -102,6 +112,8 @@ export default function SwipeToDeleteRow({ children, onDelete, onPress, colors }
 const styles = StyleSheet.create({
   wrapper: {
     width: '100%',
+    overflow: 'hidden',
+    borderRadius: 16,
   },
   deleteBackground: {
     position: 'absolute',

@@ -149,7 +149,7 @@ function AppInner() {
               />
             ) : null}
           </View>
-          <BottomTabBar activeTab={activeTab} onSelectTab={setActiveTab} colors={colors} />
+          <BottomTabBar activeTab={activeTab} onSelectTab={setActiveTab} colors={colors} isDark={isDark} />
         </>
       )}
 

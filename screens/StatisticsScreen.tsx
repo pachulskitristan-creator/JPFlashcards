@@ -89,7 +89,8 @@ export default function StatisticsScreen({ allWords, selectedTiers, colors }: St
               <RangeProgressLine
                 key={tier}
                 label={getTierLabel(tier)}
-                percent={(stats.known / stats.total) * 100}
+                knownCount={stats.known}
+                totalCount={stats.total}
                 colors={colors}
               />
             );
