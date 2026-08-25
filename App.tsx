@@ -13,6 +13,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import HomeScreen from './screens/HomeScreen';
 import QuizScreen from './screens/QuizScreen';
+import QuickPlayScreen from './screens/QuickPlayScreen';
 import AchievementsScreen from './screens/AchievementsScreen';
 import StatisticsScreen from './screens/StatisticsScreen';
 import SettingsScreen from './screens/SettingsScreen';
@@ -38,6 +39,7 @@ function AppInner() {
 
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [quizActive, setQuizActive] = useState(false);
+  const [quickPlayActive, setQuickPlayActive] = useState(false);
   const [vocabManagerVisible, setVocabManagerVisible] = useState(false);
 
   const [customWords, setCustomWords] = useState<VocabWord[]>([]);
@@ -106,6 +108,17 @@ function AppInner() {
           onRollIncreaseFlag={setRollJustIncreased}
           colors={colors}
         />
+      ) : quickPlayActive ? (
+        <QuickPlayScreen
+          words={filteredWords}
+          mode={mode}
+          activeTierCount={Math.max(1, selectedTiers.length)}
+          onExit={() => setQuickPlayActive(false)}
+          gamification={gamification}
+          onGamificationUpdate={applyGamificationUpdate}
+          onRollIncreaseFlag={setRollJustIncreased}
+          colors={colors}
+        />
       ) : (
         <>
           <View style={styles.tabContent}>
@@ -121,6 +134,7 @@ function AppInner() {
                 onSetMode={setMode}
                 wordCount={filteredWords.length}
                 onStart={() => setQuizActive(true)}
+                onStartQuickPlay={() => setQuickPlayActive(true)}
                 onOpenVocabManager={() => setVocabManagerVisible(true)}
                 gamification={gamification}
                 rollJustIncreased={rollJustIncreased}
@@ -128,7 +142,7 @@ function AppInner() {
               />
             ) : null}
             {activeTab === 'statistics' ? (
-              <StatisticsScreen allWords={allWords} selectedTiers={selectedTiers} colors={colors} />
+              <StatisticsScreen allWords={allWords} colors={colors} />
             ) : null}
             {activeTab === 'tags' ? (
               <TaggedWordsScreen

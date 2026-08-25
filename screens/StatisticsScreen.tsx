@@ -1,59 +1,71 @@
 // screens/StatisticsScreen.tsx
-// Now a persistent tab (no Modal/visible/onClose) instead of an
-// overlay. Shows the overall "% known" ring, then a "2 dots on a
-// line" progress row for each Vocabulary Range the user currently has
-// selected on the Home tab — falls back to showing every range with
-// any data if none are selected, so it's never just blank.
+// Two views of progress: an overall "% known" ring across every word,
+// and a second ring for whatever custom range you've dragged the
+// slider to — defaulting to 1–500. Dragging either handle recomputes
+// the second ring for that exact word-rank window.
+//
+// Only imported (Anki-sourced) words have a defined rank on the 1–6000
+// scale (see services/wordRank.ts) — custom user-added words don't
+// have a natural position there and are excluded from range stats,
+// which is called out below the slider so it's not a silent gap.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { VocabWord, SRSStore, FrequencyTier, getAllTiers, getTierLabel } from '../types';
+import { VocabWord, SRSStore } from '../types';
 import { loadSRSStore } from '../services/storageService';
 import { isWordKnown } from '../services/srsEngine';
+import { getWordRank } from '../services/wordRank';
 import CircularProgress from '../components/CircularProgress';
-import RangeProgressLine from '../components/RangeProgressLine';
+import RangeSlider from '../components/RangeSlider';
 import { ThemeColors } from '../theme/theme';
 
 interface StatisticsScreenProps {
   allWords: VocabWord[];
-  selectedTiers: FrequencyTier[];
   colors: ThemeColors;
 }
 
-export default function StatisticsScreen({ allWords, selectedTiers, colors }: StatisticsScreenProps) {
+const MIN_RANK = 1;
+const MAX_RANK = 6000;
+
+export default function StatisticsScreen({ allWords, colors }: StatisticsScreenProps) {
   const [srsStore, setSrsStore] = useState<SRSStore>({});
+  const [rangeStart, setRangeStart] = useState(1);
+  const [rangeEnd, setRangeEnd] = useState(500);
 
   useEffect(() => {
     loadSRSStore().then(setSrsStore);
   }, []);
 
-  const { overallPercent, perTier, knownCount, totalCount } = useMemo(() => {
+  const overall = useMemo(() => {
     const total = allWords.length;
     let known = 0;
-    const byTier: Record<number, { known: number; total: number }> = {};
-
     for (const w of allWords) {
-      const data = srsStore[w.id];
-      const wordKnown = isWordKnown(data);
-      if (wordKnown) known += 1;
-
-      if (!byTier[w.tier]) byTier[w.tier] = { known: 0, total: 0 };
-      byTier[w.tier].total += 1;
-      if (wordKnown) byTier[w.tier].known += 1;
+      if (isWordKnown(srsStore[w.id])) known += 1;
     }
-
-    return {
-      overallPercent: total > 0 ? (known / total) * 100 : 0,
-      perTier: byTier,
-      knownCount: known,
-      totalCount: total,
-    };
+    return { known, total, percent: total > 0 ? (known / total) * 100 : 0 };
   }, [allWords, srsStore]);
 
-  const tiersToShow = useMemo(() => {
-    if (selectedTiers.length > 0) return selectedTiers.slice().sort((a, b) => a - b);
-    return getAllTiers().filter((t) => perTier[t] && perTier[t].total > 0);
-  }, [selectedTiers, perTier]);
+  const rangeStats = useMemo(() => {
+    let known = 0;
+    let total = 0;
+    let skippedCustomWords = 0;
+    for (const w of allWords) {
+      const rank = getWordRank(w);
+      if (rank === null) {
+        skippedCustomWords += 1;
+        continue;
+      }
+      if (rank < rangeStart || rank > rangeEnd) continue;
+      total += 1;
+      if (isWordKnown(srsStore[w.id])) known += 1;
+    }
+    return {
+      known,
+      total,
+      percent: total > 0 ? (known / total) * 100 : 0,
+      skippedCustomWords,
+    };
+  }, [allWords, srsStore, rangeStart, rangeEnd]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -64,38 +76,47 @@ export default function StatisticsScreen({ allWords, selectedTiers, colors }: St
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.ringWrap}>
           <CircularProgress
-            percent={overallPercent}
+            percent={overall.percent}
             colors={colors}
-            centerLabel={`${Math.round(overallPercent)}%`}
+            centerLabel={`${Math.round(overall.percent)}%`}
             centerSublabel="known"
           />
           <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
-            {knownCount} of {totalCount} words known
+            {overall.known} of {overall.total} words known overall
           </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-          {selectedTiers.length > 0 ? 'Your Selected Ranges' : 'By Vocabulary Range'}
-        </Text>
-        {tiersToShow.length === 0 ? (
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            No range data yet — study a few cards first.
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Explore a Range</Text>
+        <RangeSlider
+          min={MIN_RANK}
+          max={MAX_RANK}
+          startValue={rangeStart}
+          endValue={rangeEnd}
+          onChangeEnd={(start, end) => {
+            setRangeStart(start);
+            setRangeEnd(end);
+          }}
+          colors={colors}
+        />
+
+        <View style={styles.rangeRingWrap}>
+          <CircularProgress
+            percent={rangeStats.percent}
+            size={128}
+            strokeWidth={12}
+            colors={colors}
+            centerLabel={`${Math.round(rangeStats.percent)}%`}
+            centerSublabel={`${rangeStats.known}/${rangeStats.total}`}
+          />
+        </View>
+
+        {rangeStats.skippedCustomWords > 0 ? (
+          <Text style={[styles.footnote, { color: colors.textSecondary }]}>
+            {rangeStats.skippedCustomWords} custom word
+            {rangeStats.skippedCustomWords === 1 ? '' : 's'} you added aren't on the 1–6000 scale, so
+            they're not included in this range view.
           </Text>
-        ) : (
-          tiersToShow.map((tier) => {
-            const stats = perTier[tier];
-            if (!stats || stats.total === 0) return null;
-            return (
-              <RangeProgressLine
-                key={tier}
-                label={getTierLabel(tier)}
-                knownCount={stats.known}
-                totalCount={stats.total}
-                colors={colors}
-              />
-            );
-          })
-        )}
+        ) : null}
 
         <Text style={[styles.footnote, { color: colors.textSecondary }]}>
           A word counts as "known" once you've answered it correctly 10 times in a row, or you've
@@ -135,15 +156,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  emptyText: {
-    fontSize: 13,
-    fontStyle: 'italic',
+  rangeRingWrap: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 12,
   },
   footnote: {
     fontSize: 12,
-    marginTop: 12,
+    marginTop: 10,
     lineHeight: 17,
   },
 });

@@ -31,6 +31,7 @@ interface HomeScreenProps {
   onSetMode: (mode: GameMode) => void;
   wordCount: number;
   onStart: () => void;
+  onStartQuickPlay: () => void;
   onOpenVocabManager: () => void;
   gamification: GamificationState;
   rollJustIncreased: boolean;
@@ -56,6 +57,7 @@ export default function HomeScreen({
   onSetMode,
   wordCount,
   onStart,
+  onStartQuickPlay,
   onOpenVocabManager,
   gamification,
   rollJustIncreased,
@@ -155,6 +157,20 @@ export default function HomeScreen({
 
         <Pressable
           style={[
+            styles.quickPlayButton,
+            { backgroundColor: wordCount === 0 ? colors.border : colors.card, borderColor: colors.primary },
+          ]}
+          onPress={onStartQuickPlay}
+          disabled={wordCount === 0}
+        >
+          <Ionicons name="flash" size={18} color={wordCount === 0 ? colors.textSecondary : colors.primary} />
+          <Text style={[styles.quickPlayButtonText, { color: wordCount === 0 ? colors.textSecondary : colors.primary }]}>
+            Quick Play
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[
             styles.startButton,
             { backgroundColor: wordCount === 0 ? colors.border : colors.primary, shadowColor: colors.shadow },
           ]}
@@ -228,6 +244,20 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: 30,
+  },
+  quickPlayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 20,
+    paddingVertical: 16,
+    borderWidth: 1.5,
+    marginBottom: 12,
+  },
+  quickPlayButtonText: {
+    fontWeight: '700',
+    fontSize: 15,
   },
   startButton: {
     borderRadius: 20,
