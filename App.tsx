@@ -12,6 +12,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import HomeScreen from './screens/HomeScreen';
+import LoginScreen from './screens/LoginScreen';
 import QuizScreen from './screens/QuizScreen';
 import QuickPlayScreen from './screens/QuickPlayScreen';
 import AchievementsScreen from './screens/AchievementsScreen';
@@ -27,6 +28,7 @@ import { loadCustomVocab } from './services/storageService';
 import { loadUserTags } from './services/tagsService';
 import { FrequencyTier, GameMode, VocabWord, GamificationState, UserTagStore } from './types';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import {
   loadGamification,
   saveGamification,
@@ -36,6 +38,7 @@ import { checkForNewlyUnlocked } from './services/achievementsEngine';
 
 function AppInner() {
   const { colors, isDark, themePreference, setThemePreference } = useTheme();
+  const { session, loading: authLoading, guestMode } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [quizActive, setQuizActive] = useState(false);
@@ -93,7 +96,9 @@ function AppInner() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
-      {quizActive ? (
+      {authLoading ? null : !session && !guestMode ? (
+        <LoginScreen colors={colors} />
+      ) : quizActive ? (
         <QuizScreen
           words={filteredWords}
           allWordsForTagSuggestions={allWords}
@@ -189,7 +194,9 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AppInner />
+          <AuthProvider>
+            <AppInner />
+          </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ThemeColors } from '../theme/theme';
 import { ThemePreference } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SettingsScreenProps {
   colors: ThemeColors;
@@ -23,7 +24,6 @@ const THEME_OPTIONS: { key: ThemePreference; label: string; icon: keyof typeof I
 const COMING_SOON_ROWS: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'Profile', icon: 'person-circle-outline' },
   { label: 'Notifications', icon: 'notifications-outline' },
-  { label: 'Account', icon: 'key-outline' },
 ];
 
 export default function SettingsScreen({
@@ -31,9 +31,21 @@ export default function SettingsScreen({
   themePreference,
   onSetThemePreference,
 }: SettingsScreenProps) {
+  const { user, signOut, setGuestMode } = useAuth();
+
   const selectTheme = (pref: ThemePreference) => {
     Haptics.selectionAsync().catch(() => {});
     onSetThemePreference(pref);
+  };
+
+  const handleSignOut = async () => {
+    Haptics.selectionAsync().catch(() => {});
+    await signOut();
+  };
+
+  const handleLogInPrompt = () => {
+    Haptics.selectionAsync().catch(() => {});
+    setGuestMode(false);
   };
 
   return (
@@ -43,6 +55,27 @@ export default function SettingsScreen({
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Account</Text>
+        {user ? (
+          <>
+            <View style={[styles.row, { backgroundColor: colors.surfaceAlt }]}>
+              <Ionicons name="person-circle" size={20} color={colors.primary} />
+              <Text style={[styles.rowLabel, { color: colors.textPrimary }]} numberOfLines={1}>
+                {user.email}
+              </Text>
+            </View>
+            <Pressable style={[styles.signOutButton, { borderColor: colors.error }]} onPress={handleSignOut}>
+              <Text style={[styles.signOutButtonText, { color: colors.error }]}>Sign Out</Text>
+            </Pressable>
+          </>
+        ) : (
+          <Pressable style={[styles.row, { backgroundColor: colors.surfaceAlt }]} onPress={handleLogInPrompt}>
+            <Ionicons name="log-in-outline" size={20} color={colors.primary} />
+            <Text style={[styles.rowLabel, { color: colors.textPrimary }]}>Log In / Sign Up</Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+          </Pressable>
+        )}
+
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Appearance</Text>
         <View style={styles.themeRow}>
           {THEME_OPTIONS.map((opt) => {
@@ -70,7 +103,7 @@ export default function SettingsScreen({
           })}
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Account</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>More</Text>
         {COMING_SOON_ROWS.map((row) => (
           <View key={row.label} style={[styles.row, { backgroundColor: colors.surfaceAlt }]}>
             <Ionicons name={row.icon} size={20} color={colors.textSecondary} />
@@ -144,6 +177,17 @@ const styles = StyleSheet.create({
   },
   soonBadgeText: {
     fontSize: 10,
+    fontWeight: '700',
+  },
+  signOutButton: {
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  signOutButtonText: {
+    fontSize: 14,
     fontWeight: '700',
   },
 });

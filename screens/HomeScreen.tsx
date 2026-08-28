@@ -1,7 +1,8 @@
 // screens/HomeScreen.tsx
 
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, View, Pressable, ScrollView, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, Pressable, ScrollView, Image, useWindowDimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Dropdown from '../components/Dropdown';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
@@ -80,12 +81,22 @@ export default function HomeScreen({
       contentContainerStyle={styles.scrollContent}
     >
       <View style={[styles.content, { width: contentWidth }]}>
-        <View style={styles.topRow}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>単語カード</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Japanese Flashcards for Travelers
-          </Text>
-        </View>
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroTextBlock}>
+            <Text style={styles.heroTitle}>単語カード</Text>
+            <Text style={styles.heroSubtitle}>Japanese Flashcards for Travelers</Text>
+          </View>
+          <Image
+            source={require('../assets/adaptive-icon.png')}
+            style={styles.heroMascot}
+            resizeMode="contain"
+          />
+        </LinearGradient>
 
         <View style={styles.gamificationBlock}>
           <RollBadge rollCount={gamification.rollCount} justIncreased={rollJustIncreased} colors={colors} />
@@ -169,17 +180,21 @@ export default function HomeScreen({
           </Text>
         </Pressable>
 
-        <Pressable
-          style={[
-            styles.startButton,
-            { backgroundColor: wordCount === 0 ? colors.border : colors.primary, shadowColor: colors.shadow },
-          ]}
-          onPress={onStart}
-          disabled={wordCount === 0}
-        >
-          <Text style={styles.startButtonText}>
-            {wordCount === 0 ? 'No cards match your filters' : `Start Quiz (${wordCount} cards)`}
-          </Text>
+        <Pressable onPress={onStart} disabled={wordCount === 0}>
+          {wordCount === 0 ? (
+            <View style={[styles.startButton, { backgroundColor: colors.border }]}>
+              <Text style={styles.startButtonText}>No cards match your filters</Text>
+            </View>
+          ) : (
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.startButton, { shadowColor: colors.shadow }]}
+            >
+              <Text style={styles.startButtonText}>Start Quiz ({wordCount} cards)</Text>
+            </LinearGradient>
+          )}
         </Pressable>
       </View>
     </ScrollView>
@@ -198,16 +213,37 @@ const styles = StyleSheet.create({
   content: {
     maxWidth: 560,
   },
-  topRow: {
-    marginBottom: 20,
+  heroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 26,
+    paddingVertical: 22,
+    paddingHorizontal: 22,
+    marginBottom: 22,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
   },
-  title: {
-    fontSize: 30,
+  heroTextBlock: {
+    flex: 1,
+    marginRight: 12,
+  },
+  heroTitle: {
+    fontSize: 28,
     fontWeight: '800',
+    color: '#FFFFFF',
   },
-  subtitle: {
-    fontSize: 15,
+  heroSubtitle: {
+    fontSize: 13.5,
+    color: 'rgba(255,255,255,0.85)',
     marginTop: 4,
+  },
+  heroMascot: {
+    width: 68,
+    height: 68,
   },
   gamificationBlock: {
     marginBottom: 6,
