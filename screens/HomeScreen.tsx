@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Dropdown from '../components/Dropdown';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
+import PatternBackground from '../components/PatternBackground';
 import XPBar from '../components/XPBar';
 import RollBadge from '../components/RollBadge';
 import {
@@ -76,10 +77,12 @@ export default function HomeScreen({
   }, [allWords]);
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.scrollContent}
-    >
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <PatternBackground opacity={0.25} />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
       <View style={[styles.content, { width: contentWidth }]}>
         <LinearGradient
           colors={[colors.primary, colors.primaryDark]}
@@ -92,7 +95,7 @@ export default function HomeScreen({
             <Text style={styles.heroSubtitle}>Japanese Flashcards for Travelers</Text>
           </View>
           <Image
-            source={require('../assets/adaptive-icon.png')}
+            source={require('../assets/images/adaptive-icon.png')}
             style={styles.heroMascot}
             resizeMode="contain"
           />
@@ -197,11 +200,15 @@ export default function HomeScreen({
           )}
         </Pressable>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },

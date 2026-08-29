@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import PatternBackground from '../components/PatternBackground';
 import { ThemeColors } from '../theme/theme';
 
 interface LoginScreenProps {
@@ -66,13 +67,15 @@ export default function LoginScreen({ colors }: LoginScreenProps) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <PatternBackground opacity={0.25} />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Image
-          source={require('../assets/adaptive-icon.png')}
+          source={require('../assets/images/adaptive-icon.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -137,11 +140,15 @@ export default function LoginScreen({ colors }: LoginScreenProps) {
           <Text style={[styles.guestLink, { color: colors.textSecondary }]}>Continue as Guest</Text>
         </Pressable>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
