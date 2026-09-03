@@ -65,7 +65,7 @@ export default function CircularProgress({
           originY={size / 2}
         />
       </Svg>
-      <View style={StyleSheet.absoluteFillObject}>
+      <View style={StyleSheet.absoluteFill}>
         <View style={styles.centerContent}>
           <Text style={[styles.centerLabel, { color: colors.textPrimary }]}>{centerLabel}</Text>
           {centerSublabel ? (

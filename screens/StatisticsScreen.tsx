@@ -22,12 +22,13 @@ import { ThemeColors } from '../theme/theme';
 interface StatisticsScreenProps {
   allWords: VocabWord[];
   colors: ThemeColors;
+  bottomInset: number;
 }
 
 const MIN_RANK = 1;
 const MAX_RANK = 6000;
 
-export default function StatisticsScreen({ allWords, colors }: StatisticsScreenProps) {
+export default function StatisticsScreen({ allWords, colors, bottomInset }: StatisticsScreenProps) {
   const [srsStore, setSrsStore] = useState<SRSStore>({});
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState(500);
@@ -73,7 +74,10 @@ export default function StatisticsScreen({ allWords, colors }: StatisticsScreenP
         <Text style={[styles.title, { color: colors.textPrimary }]}>Statistics</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}
+      >
         <View style={styles.ringWrap}>
           <CircularProgress
             percent={overall.percent}

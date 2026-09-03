@@ -18,6 +18,7 @@ interface TaggedWordsScreenProps {
   userTags: UserTagStore;
   onTagsChanged: (next: UserTagStore) => void;
   colors: ThemeColors;
+  bottomInset: number;
 }
 
 export default function TaggedWordsScreen({
@@ -25,6 +26,7 @@ export default function TaggedWordsScreen({
   userTags,
   onTagsChanged,
   colors,
+  bottomInset,
 }: TaggedWordsScreenProps) {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
@@ -64,7 +66,7 @@ export default function TaggedWordsScreen({
         <FlatList
           data={tagCounts}
           keyExtractor={(item) => item.tag}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: bottomInset }]}
           renderItem={({ item }) => (
             <SwipeToDeleteRow
               onDelete={() => handleDeleteTag(item.tag)}
@@ -93,7 +95,7 @@ export default function TaggedWordsScreen({
         <FlatList
           data={wordsForTag}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: bottomInset }]}
           renderItem={({ item }) => (
             <View style={styles.wordRowOuter}>
               <SwipeToDeleteRow

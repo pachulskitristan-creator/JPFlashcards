@@ -68,7 +68,7 @@ export default function LoginScreen({ colors }: LoginScreenProps) {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <PatternBackground opacity={0.25} />
+      <PatternBackground opacity={0.25} fadeColor={colors.background} />
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

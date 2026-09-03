@@ -5,13 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "icon": "./assets/images/icon.png",
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F7F4EC"
-    },
     "ios": {
       "bundleIdentifier": "com.yourname.jpflashcards",
       "supportsTablet": true
@@ -27,7 +21,18 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      
+      "expo-asset",
+      "expo-audio",
+      "expo-font",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F4EC"
+        }
+      ]
     ]
   }
 }

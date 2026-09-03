@@ -13,6 +13,7 @@ interface SettingsScreenProps {
   colors: ThemeColors;
   themePreference: ThemePreference;
   onSetThemePreference: (pref: ThemePreference) => void;
+  bottomInset: number;
 }
 
 const THEME_OPTIONS: { key: ThemePreference; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -30,6 +31,7 @@ export default function SettingsScreen({
   colors,
   themePreference,
   onSetThemePreference,
+  bottomInset,
 }: SettingsScreenProps) {
   const { user, signOut, setGuestMode } = useAuth();
 
@@ -54,7 +56,7 @@ export default function SettingsScreen({
         <Text style={[styles.title, { color: colors.textPrimary }]}>Settings</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomInset }}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Account</Text>
         {user ? (
           <>

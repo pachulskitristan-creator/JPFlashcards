@@ -5,10 +5,10 @@
 // takes over the screen" pattern Apple Music uses — then returns to
 // whichever tab you were on when you exit.
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, View, ScrollView, NativeSyntheticEvent, NativeScrollEvent, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import HomeScreen from './screens/HomeScreen';
@@ -21,7 +21,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import TaggedWordsScreen from './screens/TaggedWordsScreen';
 import CustomVocabManager from './components/CustomVocabManager';
 import AchievementUnlockOverlay from './components/AchievementUnlockOverlay';
-import BottomTabBar, { TabKey } from './components/BottomTabBar';
+import BottomTabBar, { TABS, TAB_BAR_CONTENT_HEIGHT, TabKey } from './components/BottomTabBar';
 
 import { VOCAB_DATABASE } from './data/vocabDatabase';
 import { loadCustomVocab } from './services/storageService';
@@ -39,6 +39,10 @@ import { checkForNewlyUnlocked } from './services/achievementsEngine';
 function AppInner() {
   const { colors, isDark, themePreference, setThemePreference } = useTheme();
   const { session, loading: authLoading, guestMode } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const pagerRef = useRef<ScrollView>(null);
+  const bottomInset = TAB_BAR_CONTENT_HEIGHT + insets.bottom + 16;
 
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   const [quizActive, setQuizActive] = useState(false);
@@ -72,6 +76,18 @@ function AppInner() {
     });
   }, [allWords, selectedTiers, selectedTags, userTags]);
 
+  const selectTab = (tab: TabKey) => {
+    setActiveTab(tab);
+    const index = TABS.findIndex((t) => t.key === tab);
+    pagerRef.current?.scrollTo({ x: index * width, animated: true });
+  };
+
+  const onPagerScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(e.nativeEvent.contentOffset.x / width);
+    const tab = TABS[index]?.key;
+    if (tab && tab !== activeTab) setActiveTab(tab);
+  };
+
   const toggleTier = (tier: FrequencyTier) => {
     setSelectedTiers((prev) => (prev.includes(tier) ? prev.filter((t) => t !== tier) : [...prev, tier]));
   };
@@ -93,7 +109,7 @@ function AppInner() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={[]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
       {authLoading ? null : !session && !guestMode ? (
@@ -126,8 +142,16 @@ function AppInner() {
         />
       ) : (
         <>
-          <View style={styles.tabContent}>
-            {activeTab === 'home' ? (
+          <ScrollView
+            ref={pagerRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={onPagerScrollEnd}
+            onScrollEndDrag={onPagerScrollEnd}
+            style={styles.pager}
+          >
+            <View style={{ width }}>
               <HomeScreen
                 allWords={allWords}
                 userTags={userTags}
@@ -141,34 +165,38 @@ function AppInner() {
                 onStart={() => setQuizActive(true)}
                 onStartQuickPlay={() => setQuickPlayActive(true)}
                 onOpenVocabManager={() => setVocabManagerVisible(true)}
+                isDark={isDark}
                 gamification={gamification}
                 rollJustIncreased={rollJustIncreased}
                 colors={colors}
+                bottomInset={bottomInset}
               />
-            ) : null}
-            {activeTab === 'statistics' ? (
-              <StatisticsScreen allWords={allWords} colors={colors} />
-            ) : null}
-            {activeTab === 'tags' ? (
+            </View>
+            <View style={{ width }}>
+              <StatisticsScreen allWords={allWords} colors={colors} bottomInset={bottomInset} />
+            </View>
+            <View style={{ width }}>
               <TaggedWordsScreen
                 allWords={allWords}
                 userTags={userTags}
                 onTagsChanged={setUserTags}
                 colors={colors}
+                bottomInset={bottomInset}
               />
-            ) : null}
-            {activeTab === 'achievements' ? (
-              <AchievementsScreen gamification={gamification} colors={colors} />
-            ) : null}
-            {activeTab === 'settings' ? (
+            </View>
+            <View style={{ width }}>
+              <AchievementsScreen gamification={gamification} colors={colors} bottomInset={bottomInset} />
+            </View>
+            <View style={{ width }}>
               <SettingsScreen
                 colors={colors}
                 themePreference={themePreference}
                 onSetThemePreference={setThemePreference}
+                bottomInset={bottomInset}
               />
-            ) : null}
-          </View>
-          <BottomTabBar activeTab={activeTab} onSelectTab={setActiveTab} colors={colors} isDark={isDark} />
+            </View>
+          </ScrollView>
+          <BottomTabBar activeTab={activeTab} onSelectTab={selectTab} colors={colors} isDark={isDark} />
         </>
       )}
 
@@ -207,7 +235,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  tabContent: {
+  pager: {
     flex: 1,
   },
 });

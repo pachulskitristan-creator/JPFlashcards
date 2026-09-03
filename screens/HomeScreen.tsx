@@ -21,6 +21,7 @@ import {
 import { getAllKnownTags } from '../services/tagsService';
 import { getTierXP } from '../services/gamificationService';
 import { ThemeColors } from '../theme/theme';
+import GlassSurface from '../components/Glass';
 
 interface HomeScreenProps {
   allWords: VocabWord[];
@@ -38,6 +39,8 @@ interface HomeScreenProps {
   gamification: GamificationState;
   rollJustIncreased: boolean;
   colors: ThemeColors;
+  isDark: boolean;
+  bottomInset: number;
 }
 
 const MODE_OPTIONS: { key: GameMode; label: string }[] = [
@@ -64,6 +67,8 @@ export default function HomeScreen({
   gamification,
   rollJustIncreased,
   colors,
+  isDark,
+  bottomInset,
 }: HomeScreenProps) {
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(MAX_CONTENT_WIDTH, width - 44);
@@ -78,10 +83,10 @@ export default function HomeScreen({
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <PatternBackground opacity={0.25} />
+      <PatternBackground opacity={0.25} fadeColor={colors.background} />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}
       >
       <View style={[styles.content, { width: contentWidth }]}>
         <LinearGradient
@@ -127,6 +132,7 @@ export default function HomeScreen({
           selectedKey={mode}
           onSelect={(key) => onSetMode(key as GameMode)}
           colors={colors}
+          isDark={isDark}
         />
         {mode === 'mixed' ? (
           <Text style={[styles.modeHint, { color: colors.textSecondary }]}>
@@ -144,6 +150,7 @@ export default function HomeScreen({
           selectedKeys={selectedTiers.map(String)}
           onToggle={(key) => onToggleTier(Number(key))}
           colors={colors}
+          isDark={isDark}
           placeholder="Select ranges…"
           sheetTitle="Vocabulary Range"
         />
@@ -157,6 +164,7 @@ export default function HomeScreen({
           selectedKeys={selectedTags}
           onToggle={onToggleTag}
           colors={colors}
+          isDark={isDark}
           placeholder="All topics"
           sheetTitle="Travel Topics"
           emptyMessage="No tags yet — add some while studying and they'll appear here."
@@ -170,13 +178,20 @@ export default function HomeScreen({
         <View style={styles.spacer} />
 
         <Pressable
-          style={[
-            styles.quickPlayButton,
-            { backgroundColor: wordCount === 0 ? colors.border : colors.card, borderColor: colors.primary },
-          ]}
+          style={[styles.quickPlayButton, { borderColor: colors.primary }]}
           onPress={onStartQuickPlay}
           disabled={wordCount === 0}
         >
+          {wordCount !== 0 ? (
+            <GlassSurface
+              style={StyleSheet.absoluteFill}
+              colors={colors}
+              isDark={isDark}
+              tintColor={colors.card}
+            />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.border }]} />
+          )}
           <Ionicons name="flash" size={18} color={wordCount === 0 ? colors.textSecondary : colors.primary} />
           <Text style={[styles.quickPlayButtonText, { color: wordCount === 0 ? colors.textSecondary : colors.primary }]}>
             Quick Play
@@ -297,6 +312,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderWidth: 1.5,
     marginBottom: 12,
+    overflow: 'hidden',
   },
   quickPlayButtonText: {
     fontWeight: '700',

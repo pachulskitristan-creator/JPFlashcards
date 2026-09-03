@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, Pressable, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeColors } from '../theme/theme';
+import GlassSurface from './Glass';
 
 interface DropdownOption {
   key: string;
@@ -17,18 +18,17 @@ interface DropdownProps {
   selectedKey: string;
   onSelect: (key: string) => void;
   colors: ThemeColors;
+  isDark: boolean;
 }
 
-export default function Dropdown({ options, selectedKey, onSelect, colors }: DropdownProps) {
+export default function Dropdown({ options, selectedKey, onSelect, colors, isDark }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.key === selectedKey);
 
   return (
     <>
-      <Pressable
-        style={[styles.trigger, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={() => setOpen(true)}
-      >
+      <Pressable style={[styles.trigger, { borderColor: colors.border }]} onPress={() => setOpen(true)}>
+        <GlassSurface style={StyleSheet.absoluteFill} colors={colors} isDark={isDark} tintColor={colors.card} />
         <Text style={[styles.triggerText, { color: colors.textPrimary }]}>
           {selected?.label ?? 'Select…'}
         </Text>
@@ -37,7 +37,8 @@ export default function Dropdown({ options, selectedKey, onSelect, colors }: Dro
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+          <View style={styles.sheet}>
+            <GlassSurface style={StyleSheet.absoluteFill} colors={colors} isDark={isDark} />
             <FlatList
               data={options}
               keyExtractor={(item) => item.key}
@@ -75,6 +76,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   triggerText: {
     fontSize: 15,
@@ -91,6 +93,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     maxHeight: '60%',
+    overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',

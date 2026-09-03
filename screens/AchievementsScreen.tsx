@@ -11,9 +11,10 @@ import { ThemeColors } from '../theme/theme';
 interface AchievementsScreenProps {
   gamification: GamificationState;
   colors: ThemeColors;
+  bottomInset: number;
 }
 
-export default function AchievementsScreen({ gamification, colors }: AchievementsScreenProps) {
+export default function AchievementsScreen({ gamification, colors, bottomInset }: AchievementsScreenProps) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
@@ -24,7 +25,7 @@ export default function AchievementsScreen({ gamification, colors }: Achievement
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: bottomInset }]}
         renderItem={({ item }) => {
           const unlocked = gamification.unlockedAchievementIds.includes(item.id);
           return (
