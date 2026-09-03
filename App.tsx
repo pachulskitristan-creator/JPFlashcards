@@ -79,10 +79,19 @@ function AppInner() {
   const selectTab = (tab: TabKey) => {
     setActiveTab(tab);
     const index = TABS.findIndex((t) => t.key === tab);
-    pagerRef.current?.scrollTo({ x: index * width, animated: true });
+    // Not animated: a drag across the tab bar can call this several times
+    // in under a second (one per tab crossed). Animated scrollTo calls
+    // queue/interrupt each other, which is the "jumpy" content flicker —
+    // an instant jump per crossing is also what Apple Music itself does.
+    pagerRef.current?.scrollTo({ x: index * width, animated: false });
   };
 
-  const onPagerScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  // Continuous, not just on scroll-end: a one-shot end event that gets
+  // dropped or delayed (seen on a sideloaded/no-JIT build, where the JS
+  // thread lags) leaves the tab bar stuck on a stale tab forever. Firing
+  // on every scroll frame instead makes it self-correct within one frame
+  // of any further motion, regardless of whether an end event lands.
+  const onPagerScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / width);
     const tab = TABS[index]?.key;
     if (tab && tab !== activeTab) setActiveTab(tab);
@@ -147,8 +156,8 @@ function AppInner() {
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={onPagerScrollEnd}
-            onScrollEndDrag={onPagerScrollEnd}
+            onScroll={onPagerScroll}
+            scrollEventThrottle={50}
             style={styles.pager}
           >
             <View style={{ width }}>
