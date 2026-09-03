@@ -2,12 +2,13 @@
 // Persistent tab now, not a Modal overlay.
 
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ThemeColors } from '../theme/theme';
 import { ThemePreference } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { glassSupported } from '../components/Glass';
 
 interface SettingsScreenProps {
   colors: ThemeColors;
@@ -115,6 +116,14 @@ export default function SettingsScreen({
             </View>
           </View>
         ))}
+
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Debug</Text>
+        <View style={[styles.row, { backgroundColor: colors.surfaceAlt }]}>
+          <Ionicons name="hardware-chip-outline" size={20} color={colors.textSecondary} />
+          <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>
+            {Platform.OS} {Platform.Version} · Liquid Glass: {glassSupported ? 'available' : 'unavailable'}
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );
