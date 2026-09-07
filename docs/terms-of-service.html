@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JP Flashcards Terms of Service</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #F8F3E7;
+    --surface: #FFFFFF;
+    --card: #E6EDF6;
+    --primary: #2A5F91;
+    --primary-dark: #153252;
+    --accent: #C8392C;
+    --text: #27282B;
+    --text-secondary: #5C616A;
+    --border: #E2DCCB;
+    --success: #6C8C3E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #18191B;
+      --surface: #1C2A3A;
+      --card: #223850;
+      --primary: #5C97CC;
+      --primary-dark: #0F1E2E;
+      --accent: #E07A62;
+      --text: #F3EEDF;
+      --text-secondary: #9FAEBC;
+      --border: #2C4058;
+      --success: #8FB262;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, .wordmark {
+    font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    text-wrap: balance;
+  }
+
+  .page {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+
+  header.doc-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+  }
+  .wordmark {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0 0 18px;
+  }
+  .wordmark .jp {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .wordmark .en {
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    font-family: "Zen Kaku Gothic New", sans-serif;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: 0.01em;
+  }
+  .meta {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    margin: 0 0 22px;
+  }
+  .lede {
+    font-size: 15.5px;
+    color: var(--text-secondary);
+    max-width: 62ch;
+    margin: 0 0 22px;
+  }
+
+  nav.toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  nav.toc a {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--primary);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 13px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  nav.toc a:hover, nav.toc a:focus-visible {
+    background: var(--primary);
+    color: var(--surface);
+    outline: none;
+  }
+
+  section {
+    margin: 0 0 40px;
+    scroll-margin-top: 24px;
+  }
+  section h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0 0 14px;
+    padding-left: 14px;
+    border-left: 3px solid var(--primary);
+  }
+  section h2 .num {
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.02em;
+  }
+  section p, section li {
+    max-width: 65ch;
+    font-size: 15.5px;
+    color: var(--text);
+  }
+  section p + p { margin-top: 14px; }
+  section ul {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 8px;
+  }
+  section strong { font-weight: 700; }
+
+  .plan-table {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .plan-table .plan {
+    padding: 18px;
+    border-left: 1px solid var(--border);
+  }
+  .plan-table .plan:first-child { border-left: none; }
+  .plan-table .plan .name {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .plan-table .plan .desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .callout {
+    margin-top: 16px;
+    padding: 14px 18px;
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .callout strong { color: var(--text); }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 56px;
+    padding-top: 24px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  footer a { color: var(--primary); }
+
+  @media (max-width: 520px) {
+    h1 { font-size: 26px; }
+    .plan-table { grid-template-columns: 1fr; }
+    .plan-table .plan { border-left: none; border-top: 1px solid var(--border); }
+    .plan-table .plan:first-child { border-top: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="doc-header">
+    <p class="wordmark"><span class="jp">単語カード</span><span class="en">JP Flashcards</span></p>
+    <h1>Terms of Service</h1>
+    <p class="meta">Effective September 7, 2026 · Applies to the JP Flashcards iOS and Android app</p>
+    <p class="lede">
+      The rules for using JP Flashcards, written in plain language wherever the
+      legal substance allows.
+    </p>
+    <nav class="toc" aria-label="Table of contents">
+      <a href="#acceptance">Acceptance</a>
+      <a href="#the-service">The service</a>
+      <a href="#accounts">Accounts</a>
+      <a href="#subscriptions">Subscriptions</a>
+      <a href="#acceptable-use">Acceptable use</a>
+      <a href="#your-content">Your content</a>
+      <a href="#ip">Our content</a>
+      <a href="#termination">Termination</a>
+      <a href="#disclaimer">Disclaimer</a>
+      <a href="#liability">Liability</a>
+      <a href="#changes">Changes</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <section id="acceptance">
+    <h2><span class="num">§1</span>Acceptance</h2>
+    <p>
+      By downloading or using JP Flashcards, you agree to these terms. If you don't
+      agree, don't use the app.
+    </p>
+  </section>
+
+  <section id="the-service">
+    <h2><span class="num">§2</span>The service</h2>
+    <p>
+      JP Flashcards is a Japanese vocabulary study app using spaced repetition. A free
+      tier (roughly the 500 most common words, in every study mode) is available
+      forever without an account. A Pro subscription unlocks the full 6,000-word
+      vocabulary, unlimited custom vocabulary and tags, and removes the daily study
+      cap.
+    </p>
+  </section>
+
+  <section id="accounts">
+    <h2><span class="num">§3</span>Accounts</h2>
+    <p>
+      Creating an account is optional — the app is fully usable as a guest. If you do
+      create one, you're responsible for keeping your login credentials secure and for
+      any activity under your account. You must provide an accurate email address.
+    </p>
+  </section>
+
+  <section id="subscriptions">
+    <h2><span class="num">§4</span>Subscriptions</h2>
+    <div class="plan-table">
+      <div class="plan">
+        <div class="name">Monthly</div>
+        <div class="desc">Auto-renews every month until cancelled.</div>
+      </div>
+      <div class="plan">
+        <div class="name">Yearly</div>
+        <div class="desc">Auto-renews every year until cancelled.</div>
+      </div>
+      <div class="plan">
+        <div class="name">Lifetime</div>
+        <div class="desc">One-time purchase, no renewal.</div>
+      </div>
+    </div>
+    <p>
+      Prices are shown in the app and in the App Store or Play Store listing at the
+      time of purchase. Monthly and yearly subscriptions renew automatically at the
+      same price unless cancelled at least 24 hours before the current period ends.
+      Manage or cancel a subscription through your Apple ID or Google Play account
+      settings — not inside the app, per each store's own requirements.
+    </p>
+    <div class="callout">
+      <strong>Refunds</strong> are handled by Apple or Google under their own refund
+      policies, since they process the payment — we're not able to issue refunds
+      directly.
+    </div>
+  </section>
+
+  <section id="acceptable-use">
+    <h2><span class="num">§5</span>Acceptable use</h2>
+    <p>You agree not to:</p>
+    <ul>
+      <li>Reverse-engineer, decompile, or extract the app's vocabulary database for redistribution or resale.</li>
+      <li>Attempt to bypass or circumvent the subscription/entitlement system.</li>
+      <li>Use the app in any way that disrupts its normal operation for other users.</li>
+    </ul>
+  </section>
+
+  <section id="your-content">
+    <h2><span class="num">§6</span>Your content</h2>
+    <p>
+      Any custom vocabulary or tags you add remain yours. By adding them, you grant us
+      a license to store and display them back to you — including syncing them to
+      your account if you're signed in — solely for the purpose of operating the app.
+      We don't use your custom vocabulary for anything else.
+    </p>
+  </section>
+
+  <section id="ip">
+    <h2><span class="num">§7</span>Our content</h2>
+    <p>
+      The app's design, the built-in 6,000-word vocabulary database, and the
+      JP Flashcards name and mascot are owned by us or our licensors. You may use them
+      only through the app as intended — not copied, scraped, or redistributed
+      elsewhere.
+    </p>
+  </section>
+
+  <section id="termination">
+    <h2><span class="num">§8</span>Termination</h2>
+    <p>
+      You can delete your account at any time from Settings — this is immediate and
+      permanent. We may suspend or terminate an account that violates §5, with notice
+      where practical.
+    </p>
+  </section>
+
+  <section id="disclaimer">
+    <h2><span class="num">§9</span>Disclaimer</h2>
+    <p>
+      JP Flashcards is provided "as is." We don't guarantee any specific learning
+      outcome, uninterrupted availability, or that the app will be error-free.
+    </p>
+  </section>
+
+  <section id="liability">
+    <h2><span class="num">§10</span>Limitation of liability</h2>
+    <p>
+      To the fullest extent permitted by law, we're not liable for indirect,
+      incidental, or consequential damages arising from your use of the app. Our
+      total liability for any claim is limited to the amount you paid us in the 12
+      months before the claim arose.
+    </p>
+  </section>
+
+  <section id="changes">
+    <h2><span class="num">§11</span>Changes</h2>
+    <p>
+      We may update these terms as the app evolves. If we make a material change,
+      we'll update the effective date above and, where required, notify you in-app
+      before it takes effect. Continuing to use the app after a change means you
+      accept the new terms.
+    </p>
+  </section>
+
+  <section id="contact">
+    <h2><span class="num">§12</span>Contact</h2>
+    <p>
+      Questions about these terms: <strong><a href="mailto:jpflashcards.support@icloud.com" style="color:var(--primary)">jpflashcards.support@icloud.com</a></strong>.
+    </p>
+  </section>
+
+  <footer>
+    <span>© 2026 JP Flashcards</span>
+    <span>See also our <a href="privacy-policy.html">Privacy Policy</a> and <a href="support.html">Support</a></span>
+  </footer>
+</div>
+</body>
+</html>

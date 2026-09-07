@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JP Flashcards Privacy Policy</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #F8F3E7;
+    --surface: #FFFFFF;
+    --card: #E6EDF6;
+    --primary: #2A5F91;
+    --primary-dark: #153252;
+    --accent: #C8392C;
+    --text: #27282B;
+    --text-secondary: #5C616A;
+    --border: #E2DCCB;
+    --success: #6C8C3E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #18191B;
+      --surface: #1C2A3A;
+      --card: #223850;
+      --primary: #5C97CC;
+      --primary-dark: #0F1E2E;
+      --accent: #E07A62;
+      --text: #F3EEDF;
+      --text-secondary: #9FAEBC;
+      --border: #2C4058;
+      --success: #8FB262;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, .wordmark {
+    font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    text-wrap: balance;
+  }
+
+  .page {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+  }
+
+  header.doc-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+  }
+  .wordmark {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0 0 18px;
+  }
+  .wordmark .jp {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .wordmark .en {
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    font-family: "Zen Kaku Gothic New", sans-serif;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: 0.01em;
+  }
+  .meta {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    margin: 0 0 22px;
+  }
+  .lede {
+    font-size: 15.5px;
+    color: var(--text-secondary);
+    max-width: 62ch;
+    margin: 0 0 22px;
+  }
+
+  nav.toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  nav.toc a {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--primary);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 13px;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  nav.toc a:hover, nav.toc a:focus-visible {
+    background: var(--primary);
+    color: var(--surface);
+    outline: none;
+  }
+
+  section {
+    margin: 0 0 40px;
+    scroll-margin-top: 24px;
+  }
+  section h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0 0 14px;
+    padding-left: 14px;
+    border-left: 3px solid var(--primary);
+  }
+  section h2 .num {
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.02em;
+  }
+  section p, section li {
+    max-width: 65ch;
+    font-size: 15.5px;
+    color: var(--text);
+  }
+  section p + p { margin-top: 14px; }
+  section ul {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 8px;
+  }
+  section strong { font-weight: 700; }
+
+  .data-table {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .data-row {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 16px;
+    padding: 14px 18px;
+    font-size: 14px;
+  }
+  .data-row + .data-row { border-top: 1px solid var(--border); }
+  .data-row .label {
+    font-weight: 700;
+    color: var(--text);
+  }
+  .data-row .desc { color: var(--text-secondary); }
+  .data-row.head {
+    background: var(--card);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+
+  .callout {
+    margin-top: 16px;
+    padding: 14px 18px;
+    background: var(--card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .callout strong { color: var(--text); }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 56px;
+    padding-top: 24px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  footer a { color: var(--primary); }
+
+  @media (max-width: 520px) {
+    h1 { font-size: 26px; }
+    .data-row { grid-template-columns: 1fr; gap: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="doc-header">
+    <p class="wordmark"><span class="jp">単語カード</span><span class="en">JP Flashcards</span></p>
+    <h1>Privacy Policy</h1>
+    <p class="meta">Effective September 7, 2026 · Applies to the JP Flashcards iOS and Android app</p>
+    <p class="lede">
+      This explains what JP Flashcards collects, why, and how you can delete it.
+      The short version: you can use the entire app as a guest with nothing leaving
+      your phone; creating an account only adds an email address and a backup copy
+      of your study progress.
+    </p>
+    <nav class="toc" aria-label="Table of contents">
+      <a href="#what-we-collect">What we collect</a>
+      <a href="#guest-vs-account">Guest vs. account</a>
+      <a href="#how-we-use-it">How we use it</a>
+      <a href="#third-parties">Who we share it with</a>
+      <a href="#subscriptions">Subscriptions</a>
+      <a href="#retention">Retention &amp; deletion</a>
+      <a href="#children">Children</a>
+      <a href="#your-rights">Your rights</a>
+      <a href="#changes">Changes</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <section id="what-we-collect">
+    <h2><span class="num">§1</span>What we collect</h2>
+    <div class="data-table">
+      <div class="data-row head">
+        <div>Data</div><div>Why</div>
+      </div>
+      <div class="data-row">
+        <div class="label">Email address</div>
+        <div class="desc">Only if you create an account. Used to sign you in and to identify your subscription.</div>
+      </div>
+      <div class="data-row">
+        <div class="label">Password</div>
+        <div class="desc">Only if you create an account. Stored hashed by our authentication provider, Supabase — we never see it in plain text.</div>
+      </div>
+      <div class="data-row">
+        <div class="label">Study progress</div>
+        <div class="desc">Which words you've reviewed, your spaced-repetition schedule, XP, streak, and any custom vocabulary or tags you add. Lives on your device; copied to our servers only if you're signed in, so it can follow you to a new device.</div>
+      </div>
+      <div class="data-row">
+        <div class="label">Purchase / subscription status</div>
+        <div class="desc">Whether you hold an active Pro subscription, and which product. Payment itself is handled entirely by Apple or Google — we never see your card details.</div>
+      </div>
+    </div>
+    <div class="callout">
+      <strong>What we don't collect:</strong> no advertising identifiers, no third-party analytics
+      or tracking SDKs, no location, no contacts, no microphone or camera access. The
+      app's text-to-speech reads words aloud using your device's own speech engine —
+      nothing is recorded or sent anywhere for that.
+    </div>
+  </section>
+
+  <section id="guest-vs-account">
+    <h2><span class="num">§2</span>Guest vs. account</h2>
+    <p>
+      JP Flashcards works fully as a guest. In guest mode, everything above except
+      email/password stays on your device only, in local storage — we never receive it.
+    </p>
+    <p>
+      Creating an account is optional and adds two things: an email address for sign-in,
+      and a backup copy of your study progress on our servers, so it survives a reinstall
+      or carries over to a new phone.
+    </p>
+  </section>
+
+  <section id="how-we-use-it">
+    <h2><span class="num">§3</span>How we use it</h2>
+    <ul>
+      <li>To let you sign in and keep your account secure.</li>
+      <li>To back up and restore your study progress across devices.</li>
+      <li>To check whether you hold an active Pro subscription, so the app can unlock the right content.</li>
+      <li>To respond if you email us for support.</li>
+    </ul>
+    <p>We do not sell your data, and we do not use it for advertising — we don't run any.</p>
+  </section>
+
+  <section id="third-parties">
+    <h2><span class="num">§4</span>Who we share it with</h2>
+    <p>Three services process data on our behalf, each only for the narrow purpose below:</p>
+    <div class="data-table">
+      <div class="data-row head"><div>Service</div><div>What it handles</div></div>
+      <div class="data-row">
+        <div class="label">Supabase</div>
+        <div class="desc">Hosts your account and, if you're signed in, your synced study progress. Their own privacy practices apply to how they store this: <a href="https://supabase.com/privacy" style="color:var(--primary)">supabase.com/privacy</a>.</div>
+      </div>
+      <div class="data-row">
+        <div class="label">RevenueCat</div>
+        <div class="desc">Tracks which subscription you hold, linked to your account so it follows you across devices. See <a href="https://www.revenuecat.com/privacy/" style="color:var(--primary)">revenuecat.com/privacy</a>.</div>
+      </div>
+      <div class="data-row">
+        <div class="label">Apple / Google</div>
+        <div class="desc">Process the actual subscription payment through the App Store or Play Store. We never receive your payment details.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="subscriptions">
+    <h2><span class="num">§5</span>Subscriptions</h2>
+    <p>
+      If you buy a JP Flashcards Pro subscription, Apple or Google (whichever store you
+      bought it through) is the merchant of record. We only receive confirmation of your
+      entitlement — active or not — never your card number or billing address.
+    </p>
+  </section>
+
+  <section id="retention">
+    <h2><span class="num">§6</span>Retention &amp; deletion</h2>
+    <p>
+      We keep your account and synced progress for as long as your account exists.
+      You can delete your account at any time from Settings inside the app — this
+      permanently removes your email, password, and cloud-synced progress from our
+      servers immediately. Local, on-device data is removed by uninstalling the app.
+    </p>
+  </section>
+
+  <section id="children">
+    <h2><span class="num">§7</span>Children</h2>
+    <p>
+      JP Flashcards is not directed at children under 13, and we do not knowingly
+      collect personal information from them. If you believe a child has created an
+      account, contact us and we'll delete it.
+    </p>
+  </section>
+
+  <section id="your-rights">
+    <h2><span class="num">§8</span>Your rights</h2>
+    <p>
+      Wherever you are, you can ask us to access, correct, export, or delete the
+      personal data we hold about you — most of this you can already do yourself
+      in-app (account deletion is self-service, see §6). For anything else, email us
+      and we'll respond within 30 days.
+    </p>
+  </section>
+
+  <section id="changes">
+    <h2><span class="num">§9</span>Changes to this policy</h2>
+    <p>
+      If we make a material change, we'll update the effective date above and, where
+      required, notify you in-app before it takes effect.
+    </p>
+  </section>
+
+  <section id="contact">
+    <h2><span class="num">§10</span>Contact</h2>
+    <p>
+      Questions about this policy or your data: <strong><a href="mailto:jpflashcards.support@icloud.com" style="color:var(--primary)">jpflashcards.support@icloud.com</a></strong>.
+    </p>
+  </section>
+
+  <footer>
+    <span>© 2026 JP Flashcards</span>
+    <span>See also our <a href="terms-of-service.html">Terms of Service</a> and <a href="support.html">Support</a></span>
+  </footer>
+</div>
+</body>
+</html>
