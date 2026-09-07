@@ -7,10 +7,11 @@
     "userInterfaceStyle": "automatic",
     "icon": "./assets/images/icon.png",
     "ios": {
-      "bundleIdentifier": "com.yourname.jpflashcards",
+      "bundleIdentifier": "com.tristanpachulski.jpflashcards",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.tristanpachulski.jpflashcards",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundImage": "./assets/images/adaptive-icon-background.png",

@@ -35,31 +35,27 @@ function valueToPxWorklet(v: number, min: number, max: number, innerWidth: numbe
   return ((v - min) / (max - min)) * innerWidth;
 }
 
-function pxToValueWorklet(px: number, min: number, max: number, innerWidth: number): number {
+/**
+ * Finds the nearest snap point's INDEX (unrestricted) — bounds are then
+ * enforced as index comparisons by the caller, not pixel-distance math.
+ * The snap grid isn't uniform (the first gap, min→first-step, is
+ * shorter than the rest whenever min isn't itself a multiple of the
+ * step), so a pixel-space "one step wide" bound check can land between
+ * two real snap points and silently exclude a valid one. Index space
+ * can't have that class of bug — it's just integers.
+ */
+function findNearestSnapIndexWorklet(px: number, snapPxList: number[]): number {
   'worklet';
-  return Math.round(min + (px / innerWidth) * (max - min));
-}
-
-/** Finds the nearest value in snapPxList to `px`, restricted to [minBound, maxBound]. */
-function findNearestSnapWorklet(
-  px: number,
-  snapPxList: number[],
-  minBound: number,
-  maxBound: number
-): number {
-  'worklet';
-  let nearest = minBound;
+  let nearestIdx = 0;
   let bestDist = Infinity;
   for (let i = 0; i < snapPxList.length; i++) {
-    const candidate = snapPxList[i];
-    if (candidate < minBound || candidate > maxBound) continue;
-    const dist = Math.abs(px - candidate);
+    const dist = Math.abs(px - snapPxList[i]);
     if (dist < bestDist) {
       bestDist = dist;
-      nearest = candidate;
+      nearestIdx = i;
     }
   }
-  return nearest;
+  return nearestIdx;
 }
 
 function getSnapValues(min: number, max: number, step: number): number[] {
@@ -91,30 +87,44 @@ export default function RangeSlider({
     () => snapValues.map((v) => valueToPxWorklet(v, min, max, innerWidth)),
     [snapValues, min, max, innerWidth]
   );
-  const stepPx = (SNAP_STEP / (max - min)) * innerWidth;
 
   const startPx = useSharedValue(0);
   const endPx = useSharedValue(0);
+  const startIndex = useSharedValue(0);
+  const endIndex = useSharedValue(snapValues.length - 1);
   const startBase = useSharedValue(0);
   const endBase = useSharedValue(0);
-  const lastSnappedStart = useSharedValue(startValue);
-  const lastSnappedEnd = useSharedValue(endValue);
 
   const onLayout = (e: LayoutChangeEvent) => setTrackWidth(e.nativeEvent.layout.width);
 
   const triggerHaptic = () => Haptics.selectionAsync().catch(() => {});
 
+  const nearestIndexForValue = (value: number) => {
+    let nearest = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < snapValues.length; i++) {
+      const dist = Math.abs(value - snapValues[i]);
+      if (dist < bestDist) {
+        bestDist = dist;
+        nearest = i;
+      }
+    }
+    return nearest;
+  };
+
   useEffect(() => {
     if (trackWidth > 0) {
-      startPx.value = valueToPxWorklet(startValue, min, max, innerWidth);
-      endPx.value = valueToPxWorklet(endValue, min, max, innerWidth);
-      lastSnappedStart.value = startValue;
-      lastSnappedEnd.value = endValue;
-      setLiveStart(startValue);
-      setLiveEnd(endValue);
+      const si = nearestIndexForValue(startValue);
+      const ei = nearestIndexForValue(endValue);
+      startIndex.value = si;
+      endIndex.value = ei;
+      startPx.value = snapPxList[si];
+      endPx.value = snapPxList[ei];
+      setLiveStart(snapValues[si]);
+      setLiveEnd(snapValues[ei]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackWidth, startValue, endValue]);
+  }, [trackWidth, startValue, endValue, snapPxList]);
 
   const startGesture = Gesture.Pan()
     .onBegin(() => {
@@ -122,20 +132,17 @@ export default function RangeSlider({
     })
     .onUpdate((e) => {
       const raw = startBase.value + e.translationX;
-      const snapped = findNearestSnapWorklet(raw, snapPxList, 0, endPx.value - stepPx);
-      startPx.value = snapped;
-      const newVal = pxToValueWorklet(snapped, min, max, innerWidth);
-      if (newVal !== lastSnappedStart.value) {
-        lastSnappedStart.value = newVal;
+      let idx = findNearestSnapIndexWorklet(raw, snapPxList);
+      idx = Math.max(0, Math.min(idx, endIndex.value - 1));
+      startPx.value = snapPxList[idx];
+      if (idx !== startIndex.value) {
+        startIndex.value = idx;
         runOnJS(triggerHaptic)();
       }
-      runOnJS(setLiveStart)(newVal);
+      runOnJS(setLiveStart)(snapValues[idx]);
     })
     .onEnd(() => {
-      runOnJS(onChangeEnd)(
-        pxToValueWorklet(startPx.value, min, max, innerWidth),
-        pxToValueWorklet(endPx.value, min, max, innerWidth)
-      );
+      runOnJS(onChangeEnd)(snapValues[startIndex.value], snapValues[endIndex.value]);
     });
 
   const endGesture = Gesture.Pan()
@@ -144,20 +151,17 @@ export default function RangeSlider({
     })
     .onUpdate((e) => {
       const raw = endBase.value + e.translationX;
-      const snapped = findNearestSnapWorklet(raw, snapPxList, startPx.value + stepPx, innerWidth);
-      endPx.value = snapped;
-      const newVal = pxToValueWorklet(snapped, min, max, innerWidth);
-      if (newVal !== lastSnappedEnd.value) {
-        lastSnappedEnd.value = newVal;
+      let idx = findNearestSnapIndexWorklet(raw, snapPxList);
+      idx = Math.min(snapValues.length - 1, Math.max(idx, startIndex.value + 1));
+      endPx.value = snapPxList[idx];
+      if (idx !== endIndex.value) {
+        endIndex.value = idx;
         runOnJS(triggerHaptic)();
       }
-      runOnJS(setLiveEnd)(newVal);
+      runOnJS(setLiveEnd)(snapValues[idx]);
     })
     .onEnd(() => {
-      runOnJS(onChangeEnd)(
-        pxToValueWorklet(startPx.value, min, max, innerWidth),
-        pxToValueWorklet(endPx.value, min, max, innerWidth)
-      );
+      runOnJS(onChangeEnd)(snapValues[startIndex.value], snapValues[endIndex.value]);
     });
 
   const fillStyle = useAnimatedStyle(() => ({

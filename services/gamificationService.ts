@@ -14,6 +14,11 @@ const GAMIFICATION_KEY = '@jp_flashcards/gamification_v2';
 const XP_PER_CORRECT = 10;
 const XP_PER_LEVEL = 100;
 
+/** Cards answered today before the streak counts as "kept" for the day. */
+export const ROLL_SECURE_THRESHOLD = 25;
+/** Free-tier cards-per-day cap; Pro accounts skip this entirely (checked by the caller). */
+export const FREE_DAILY_CARD_LIMIT = 50;
+
 export function createInitialGamificationState(): GamificationState {
   return {
     xpByTier: {},
@@ -21,6 +26,8 @@ export function createInitialGamificationState(): GamificationState {
     totalAnswered: 0,
     rollCount: 0,
     lastActiveDate: null,
+    dailyCardCount: 0,
+    dailyCardCountDate: null,
     unlockedAchievementIds: [],
   };
 }
@@ -97,12 +104,7 @@ export function addAnswerResult(
   };
 }
 
-export function registerDailyActivity(state: GamificationState): {
-  next: GamificationState;
-  rollIncreased: boolean;
-} {
-  const today = todayISO();
-
+function secureRollForToday(state: GamificationState, today: string): { next: GamificationState; rollIncreased: boolean } {
   if (state.lastActiveDate === today) {
     return { next: state, rollIncreased: false };
   }
@@ -115,4 +117,33 @@ export function registerDailyActivity(state: GamificationState): {
 
   const next = { ...state, rollCount: nextRoll, lastActiveDate: today };
   return { next, rollIncreased: nextRoll > state.rollCount };
+}
+
+/**
+ * Called once per card answered (right or wrong), from every study
+ * mode. Bumps today's card count (resetting it if the date rolled
+ * over), and secures the day's roll as soon as that count reaches
+ * ROLL_SECURE_THRESHOLD — not tied to finishing a whole session, so
+ * stopping partway through still keeps the streak once you're past the
+ * threshold. `dailyCount` in the return value is what callers check
+ * against FREE_DAILY_CARD_LIMIT to decide whether to stop a free user.
+ */
+export function recordDailyCard(state: GamificationState): {
+  next: GamificationState;
+  rollIncreased: boolean;
+  dailyCount: number;
+} {
+  const today = todayISO();
+  const dailyCount = state.dailyCardCountDate === today ? state.dailyCardCount + 1 : 1;
+
+  let working: GamificationState = { ...state, dailyCardCount: dailyCount, dailyCardCountDate: today };
+  let rollIncreased = false;
+
+  if (dailyCount >= ROLL_SECURE_THRESHOLD) {
+    const secured = secureRollForToday(working, today);
+    working = secured.next;
+    rollIncreased = secured.rollIncreased;
+  }
+
+  return { next: working, rollIncreased, dailyCount };
 }

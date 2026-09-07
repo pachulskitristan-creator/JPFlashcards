@@ -31,7 +31,6 @@ async function ensureSilentModePlayback(): Promise<void> {
   try {
     await setAudioModeAsync({ playsInSilentMode: true });
     audioModeConfigured = true;
-    console.log('[TTS] Audio mode configured to play through silent mode.');
   } catch (e) {
     // Not fatal — speech will still work, it just won't override the mute switch.
     console.warn('[TTS] Could not configure silent-mode playback:', e);
@@ -54,15 +53,10 @@ export async function speakJapanese(text: string): Promise<void> {
     console.warn('[TTS] isSpeakingAsync/stop threw (usually safe to ignore):', e);
   }
 
-  console.log('[TTS] calling Speech.speak with:', text);
-
   Speech.speak(text, {
     language: 'ja-JP',
     pitch: 1.0,
     rate: 0.85,
-    onStart: () => console.log('[TTS] onStart fired — audio should be playing now'),
-    onDone: () => console.log('[TTS] onDone fired — finished successfully'),
-    onStopped: () => console.log('[TTS] onStopped fired'),
     onError: (error) => {
       console.warn('[TTS] onError fired:', error);
       if (__DEV__) {

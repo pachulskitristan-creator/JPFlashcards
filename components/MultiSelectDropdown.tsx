@@ -8,7 +8,6 @@ import { Modal, View, Text, Pressable, StyleSheet, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import CheckboxList from './CheckboxList';
 import { ThemeColors } from '../theme/theme';
-import GlassSurface from './Glass';
 
 interface CheckboxOption {
   key: string;
@@ -21,7 +20,6 @@ interface MultiSelectDropdownProps {
   selectedKeys: string[];
   onToggle: (key: string) => void;
   colors: ThemeColors;
-  isDark: boolean;
   placeholder: string;
   sheetTitle: string;
   emptyMessage?: string;
@@ -32,7 +30,6 @@ export default function MultiSelectDropdown({
   selectedKeys,
   onToggle,
   colors,
-  isDark,
   placeholder,
   sheetTitle,
   emptyMessage,
@@ -48,16 +45,17 @@ export default function MultiSelectDropdown({
 
   return (
     <>
-      <Pressable style={[styles.trigger, { borderColor: colors.border }]} onPress={() => setOpen(true)}>
-        <GlassSurface style={StyleSheet.absoluteFill} colors={colors} isDark={isDark} tintColor={colors.card} />
+      <Pressable
+        style={[styles.trigger, { backgroundColor: `${colors.card}A6`, borderColor: colors.border }]}
+        onPress={() => setOpen(true)}
+      >
         <Text style={[styles.triggerText, { color: colors.textPrimary }]}>{summary}</Text>
         <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={() => {}}>
-            <GlassSurface style={StyleSheet.absoluteFill} colors={colors} isDark={isDark} />
+          <Pressable style={[styles.sheet, { backgroundColor: `${colors.surface}A6` }]} onPress={() => {}}>
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>{sheetTitle}</Text>
               <Pressable onPress={() => setOpen(false)} hitSlop={10}>
@@ -89,7 +87,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
-    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   triggerText: {
     fontSize: 15,

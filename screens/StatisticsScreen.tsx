@@ -1,13 +1,11 @@
 // screens/StatisticsScreen.tsx
-// Two views of progress: an overall "% known" ring across every word,
-// and a second ring for whatever custom range you've dragged the
-// slider to — defaulting to 1–500. Dragging either handle recomputes
-// the second ring for that exact word-rank window.
-//
-// Only imported (Anki-sourced) words have a defined rank on the 1–6000
-// scale (see services/wordRank.ts) — custom user-added words don't
-// have a natural position there and are excluded from range stats,
-// which is called out below the slider so it's not a silent gap.
+// Two views of progress:
+//   1. Overall composition — known / kind-of-know ("learning") / new —
+//      as one segmented bar plus the raw counts, not three separate
+//      rings (a stacked bar reads a 3-part whole faster than rings do).
+//   2. The selected rank range (via the slider) broken into buckets and
+//      plotted as two overlapping smooth curves — % known and % kind-of-
+//      know across that range — instead of a flat single percentage.
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
@@ -15,8 +13,9 @@ import { VocabWord, SRSStore } from '../types';
 import { loadSRSStore } from '../services/storageService';
 import { isWordKnown } from '../services/srsEngine';
 import { getWordRank } from '../services/wordRank';
-import CircularProgress from '../components/CircularProgress';
 import RangeSlider from '../components/RangeSlider';
+import MasteryWaveChart, { WaveBucket } from '../components/MasteryWaveChart';
+import PatternBackground from '../components/PatternBackground';
 import { ThemeColors } from '../theme/theme';
 
 interface StatisticsScreenProps {
@@ -27,6 +26,24 @@ interface StatisticsScreenProps {
 
 const MIN_RANK = 1;
 const MAX_RANK = 6000;
+const BUCKET_COUNT = 6;
+
+interface Bucket {
+  known: number;
+  learning: number;
+  total: number;
+}
+
+function bucketOf(words: VocabWord[], srsStore: SRSStore): Bucket {
+  let known = 0;
+  let learning = 0;
+  for (const w of words) {
+    const data = srsStore[w.id];
+    if (isWordKnown(data)) known += 1;
+    else if (data && data.correctCount > 0) learning += 1;
+  }
+  return { known, learning, total: words.length };
+}
 
 export default function StatisticsScreen({ allWords, colors, bottomInset }: StatisticsScreenProps) {
   const [srsStore, setSrsStore] = useState<SRSStore>({});
@@ -37,39 +54,38 @@ export default function StatisticsScreen({ allWords, colors, bottomInset }: Stat
     loadSRSStore().then(setSrsStore);
   }, []);
 
-  const overall = useMemo(() => {
-    const total = allWords.length;
-    let known = 0;
-    for (const w of allWords) {
-      if (isWordKnown(srsStore[w.id])) known += 1;
-    }
-    return { known, total, percent: total > 0 ? (known / total) * 100 : 0 };
-  }, [allWords, srsStore]);
+  const overall = useMemo(() => bucketOf(allWords, srsStore), [allWords, srsStore]);
 
-  const rangeStats = useMemo(() => {
-    let known = 0;
-    let total = 0;
-    let skippedCustomWords = 0;
-    for (const w of allWords) {
-      const rank = getWordRank(w);
-      if (rank === null) {
-        skippedCustomWords += 1;
-        continue;
-      }
-      if (rank < rangeStart || rank > rangeEnd) continue;
-      total += 1;
-      if (isWordKnown(srsStore[w.id])) known += 1;
+  const rankedWords = useMemo(
+    () => allWords.map((w) => ({ word: w, rank: getWordRank(w) })).filter((x) => x.rank !== null) as {
+      word: VocabWord;
+      rank: number;
+    }[],
+    [allWords]
+  );
+  const skippedCustomWords = allWords.length - rankedWords.length;
+
+  const waveBuckets: WaveBucket[] = useMemo(() => {
+    const span = Math.max(1, rangeEnd - rangeStart + 1);
+    const bucketSize = span / BUCKET_COUNT;
+    const buckets: WaveBucket[] = [];
+    for (let i = 0; i < BUCKET_COUNT; i++) {
+      const lo = Math.round(rangeStart + i * bucketSize);
+      const hi = i === BUCKET_COUNT - 1 ? rangeEnd : Math.round(rangeStart + (i + 1) * bucketSize) - 1;
+      const wordsInBucket = rankedWords.filter((x) => x.rank >= lo && x.rank <= hi).map((x) => x.word);
+      const { known, learning, total } = bucketOf(wordsInBucket, srsStore);
+      buckets.push({
+        label: `${lo}`,
+        knownPct: total > 0 ? (known / total) * 100 : 0,
+        learningPct: total > 0 ? (learning / total) * 100 : 0,
+      });
     }
-    return {
-      known,
-      total,
-      percent: total > 0 ? (known / total) * 100 : 0,
-      skippedCustomWords,
-    };
-  }, [allWords, srsStore, rangeStart, rangeEnd]);
+    return buckets;
+  }, [rankedWords, srsStore, rangeStart, rangeEnd]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <PatternBackground opacity={0.25} fadeColor={colors.background} />
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.textPrimary }]}>Statistics</Text>
       </View>
@@ -78,19 +94,42 @@ export default function StatisticsScreen({ allWords, colors, bottomInset }: Stat
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomInset }]}
       >
-        <View style={styles.ringWrap}>
-          <CircularProgress
-            percent={overall.percent}
-            colors={colors}
-            centerLabel={`${Math.round(overall.percent)}%`}
-            centerSublabel="known"
-          />
-          <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>
-            {overall.known} of {overall.total} words known overall
-          </Text>
+        <View style={[styles.overviewCard, { backgroundColor: colors.surfaceAlt }]}>
+          <View style={styles.overviewHeadline}>
+            <Text style={[styles.overviewNumber, { color: colors.textPrimary }]}>{overall.known}</Text>
+            <Text style={[styles.overviewSuffix, { color: colors.textSecondary }]}>
+              {' '}
+              / {overall.total} words known
+            </Text>
+          </View>
+
+          <View style={[styles.barTrack, { backgroundColor: colors.border }]}>
+            {overall.total > 0 ? (
+              <View style={[styles.barSegment, { width: `${(overall.known / overall.total) * 100}%`, backgroundColor: colors.success }]} />
+            ) : null}
+            {overall.total > 0 ? (
+              <View
+                style={[
+                  styles.barSegment,
+                  { width: `${(overall.learning / overall.total) * 100}%`, backgroundColor: colors.primary },
+                ]}
+              />
+            ) : null}
+          </View>
+
+          <View style={styles.legendRow}>
+            <LegendItem dotColor={colors.success} label="Known" value={overall.known} colors={colors} />
+            <LegendItem dotColor={colors.primary} label="Kind of know" value={overall.learning} colors={colors} />
+            <LegendItem
+              dotColor={colors.border}
+              label="New"
+              value={Math.max(0, overall.total - overall.known - overall.learning)}
+              colors={colors}
+            />
+          </View>
         </View>
 
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Explore a Range</Text>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Progress by Range</Text>
         <RangeSlider
           min={MIN_RANK}
           max={MAX_RANK}
@@ -103,30 +142,43 @@ export default function StatisticsScreen({ allWords, colors, bottomInset }: Stat
           colors={colors}
         />
 
-        <View style={styles.rangeRingWrap}>
-          <CircularProgress
-            percent={rangeStats.percent}
-            size={128}
-            strokeWidth={12}
-            colors={colors}
-            centerLabel={`${Math.round(rangeStats.percent)}%`}
-            centerSublabel={`${rangeStats.known}/${rangeStats.total}`}
-          />
+        <View style={[styles.waveCard, { backgroundColor: colors.surfaceAlt }]}>
+          <MasteryWaveChart buckets={waveBuckets} colors={colors} />
         </View>
 
-        {rangeStats.skippedCustomWords > 0 ? (
+        {skippedCustomWords > 0 ? (
           <Text style={[styles.footnote, { color: colors.textSecondary }]}>
-            {rangeStats.skippedCustomWords} custom word
-            {rangeStats.skippedCustomWords === 1 ? '' : 's'} you added aren't on the 1–6000 scale, so
-            they're not included in this range view.
+            {skippedCustomWords} custom word{skippedCustomWords === 1 ? '' : 's'} you added aren't on the 1–6000
+            scale, so they're not included in this range view.
           </Text>
         ) : null}
 
         <Text style={[styles.footnote, { color: colors.textSecondary }]}>
-          A word counts as "known" once you've answered it correctly 10 times in a row, or you've
-          marked it "I know this" during a quiz.
+          A word counts as "known" once you've answered it correctly 10 times in a row, or you've marked it "I
+          know this" during a quiz. "Kind of know" means you've gotten it right at least once but haven't
+          mastered it yet.
         </Text>
       </ScrollView>
+    </View>
+  );
+}
+
+function LegendItem({
+  dotColor,
+  label,
+  value,
+  colors,
+}: {
+  dotColor: string;
+  label: string;
+  value: number;
+  colors: ThemeColors;
+}) {
+  return (
+    <View style={styles.legendItem}>
+      <View style={[styles.legendDot, { backgroundColor: dotColor, borderColor: colors.border }]} />
+      <Text style={[styles.legendValue, { color: colors.textPrimary }]}>{value}</Text>
+      <Text style={[styles.legendLabel, { color: colors.textSecondary }]}>{label}</Text>
     </View>
   );
 }
@@ -147,29 +199,73 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 30,
   },
-  ringWrap: {
-    alignItems: 'center',
-    marginBottom: 30,
+  overviewCard: {
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 24,
   },
-  summaryLabel: {
-    fontSize: 13,
+  overviewHeadline: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 14,
+  },
+  overviewNumber: {
+    fontSize: 34,
+    fontWeight: '800',
+  },
+  overviewSuffix: {
+    fontSize: 15,
     fontWeight: '600',
+  },
+  barTrack: {
+    flexDirection: 'row',
+    height: 12,
+    borderRadius: 6,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  barSegment: {
+    height: '100%',
+  },
+  legendRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 14,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  legendValue: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  legendLabel: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
-    marginBottom: 16,
+    letterSpacing: 0.4,
+    marginBottom: 10,
   },
-  rangeRingWrap: {
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 12,
+  waveCard: {
+    borderRadius: 20,
+    padding: 16,
+    marginTop: 24,
   },
   footnote: {
     fontSize: 12,
-    marginTop: 10,
+    marginTop: 16,
     lineHeight: 17,
   },
 });

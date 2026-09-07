@@ -22,6 +22,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
+  deleteAccount: () => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -70,6 +71,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  // Apple requires in-app self-service account deletion for apps that
+  // support account creation (Guideline 5.1.1(v)). Deleting a user
+  // requires the Supabase service-role key, which must never live in
+  // client code — so this calls a Supabase Edge Function
+  // (supabase/functions/delete-account) that does the actual deletion
+  // server-side. Deploy that function before shipping — see its file
+  // for the exact commands.
+  const deleteAccount = async () => {
+    const { error } = await supabase.functions.invoke('delete-account');
+    if (error) return { error: error.message };
+    await signOut();
+    return { error: null };
+  };
+
   const value = useMemo(
     () => ({
       session,
@@ -81,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signOut,
       resetPassword,
+      deleteAccount,
     }),
     [session, loading, guestMode]
   );

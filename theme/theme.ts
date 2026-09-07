@@ -1,8 +1,15 @@
 // theme/theme.ts
-// Palette derived from the uploaded swatches: deep navy, warm cream/white,
-// brick red, medium blue, and a dark teal-navy. Same five colors, two
-// arrangements — light mode leads with the cream/white, dark mode leads
-// with the navy.
+// Palette drawn from Japanese traditional colors (伝統色) instead of an
+// arbitrary swatch set:
+//   - Ai-iro   藍色  indigo blue   -> primary
+//   - Shu-iro  朱色  vermillion    -> accentRed (shrine-gate red)
+//   - Matcha-iro 抹茶色 tea green  -> success
+//   - Sumi-iro 墨色  ink black     -> primary text (light) / background (dark)
+//   - Washi    和紙  paper cream  -> background (light) / primary text (dark)
+// Light mode leads with washi paper and ink text; dark mode inverts to
+// sumi ink with washi text, both keeping the same indigo/vermillion/
+// matcha accents so the app reads as the same palette in either mode,
+// not two different ones.
 
 export interface ThemeColors {
   background: string;
@@ -24,39 +31,39 @@ export interface ThemeColors {
 }
 
 export const lightColors: ThemeColors = {
-  background: '#F7F4EC', // warm cream
+  background: '#F8F3E7', // washi paper
   surface: '#FFFFFF',
-  surfaceAlt: '#EFF3F8',
-  card: '#E7EEF6', // pale medium-blue tint
-  primary: '#2C6FA0', // medium blue
-  primaryDark: '#153A52', // dark teal-navy
-  accentRed: '#B23A3D', // brick red
-  textPrimary: '#122335', // near-black navy
-  textSecondary: '#5C6E80',
+  surfaceAlt: '#F1ECDD', // paper tint
+  card: '#E6EDF6', // pale ai-iro tint
+  primary: '#2A5F91', // ai-iro (indigo blue)
+  primaryDark: '#153252', // deep indigo
+  accentRed: '#C8392C', // shu-iro (shrine vermillion)
+  textPrimary: '#27282B', // sumi-iro (ink black)
+  textSecondary: '#5C616A',
   textOnPrimary: '#FFFFFF',
-  border: '#E0DED2',
-  success: '#3FAE72',
-  successBg: '#E4F8ED',
-  error: '#C24A47',
+  border: '#E2DCCB',
+  success: '#6C8C3E', // matcha
+  successBg: '#E9F0DB',
+  error: '#B23B3B',
   errorBg: '#FBEAE8',
-  shadow: '#122335',
+  shadow: '#27282B',
 };
 
 export const darkColors: ThemeColors = {
-  background: '#0E1B2A', // near-black navy
-  surface: '#153043',
-  surfaceAlt: '#102538',
-  card: '#1A3A52', // dark teal-navy
-  primary: '#4C93C9', // medium blue, lifted for contrast on dark
-  primaryDark: '#0E1B2A',
-  accentRed: '#D2645F', // brick red, lifted for contrast on dark
-  textPrimary: '#F5F2E8', // warm cream
-  textSecondary: '#9AB0C2',
-  textOnPrimary: '#0E1B2A',
-  border: '#22415C',
-  success: '#57C98B',
-  successBg: '#123527',
-  error: '#DE7A76',
-  errorBg: '#3A1E1D',
+  background: '#18191B', // sumi-iro (ink black)
+  surface: '#1C2A3A', // ai-iro-tinted surface
+  surfaceAlt: '#182432',
+  card: '#223850', // ai-iro card
+  primary: '#5C97CC', // ai-iro, lifted for contrast on ink
+  primaryDark: '#0F1E2E',
+  accentRed: '#E07A62', // shu-iro, lifted for contrast on ink
+  textPrimary: '#F3EEDF', // washi paper
+  textSecondary: '#9FAEBC',
+  textOnPrimary: '#101820',
+  border: '#2C4058',
+  success: '#8FB262', // matcha, lifted
+  successBg: '#1F2C18',
+  error: '#E2726B',
+  errorBg: '#3A1C1A',
   shadow: '#000000',
 };

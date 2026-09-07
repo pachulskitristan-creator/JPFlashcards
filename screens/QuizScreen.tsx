@@ -2,17 +2,21 @@
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { StyleSheet, Text, View, Pressable, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import QuizCard from '../components/QuizCard';
 import SwipeableOption, { OptionState } from '../components/SwipeableOption';
 import TagEditorModal from '../components/TagEditorModal';
+import PatternBackground from '../components/PatternBackground';
+import DailyLimitScreen from '../components/DailyLimitScreen';
 import { GameMode, GamificationState, QuestionDirection, QuizQuestion, SRSStore, UserTagStore, VocabWord } from '../types';
 import { buildStudyQueue, getOrCreateSRSData, updateAfterAnswer, isWordKnown, markWordKnownManually, unmarkWordKnown } from '../services/srsEngine';
 import { loadSRSStore, saveSRSStore } from '../services/storageService';
 import { speakJapanese } from '../services/ttsService';
-import { addAnswerResult, registerDailyActivity } from '../services/gamificationService';
+import { addAnswerResult, recordDailyCard, FREE_DAILY_CARD_LIMIT } from '../services/gamificationService';
 import { loadUserTags, addTagToWord, removeTagFromWord, getEffectiveTags, getAllKnownTags } from '../services/tagsService';
+import { usePurchases } from '../contexts/PurchasesContext';
 import { ThemeColors } from '../theme/theme';
 
 interface QuizScreenProps {
@@ -69,6 +73,8 @@ export default function QuizScreen({
 }: QuizScreenProps) {
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(MAX_CONTENT_WIDTH, width - 40);
+  const insets = useSafeAreaInsets();
+  const { isPro, presentPaywall } = usePurchases();
 
   const [srsStore, setSrsStore] = useState<SRSStore>({});
   const [userTags, setUserTags] = useState<UserTagStore>({});
@@ -78,7 +84,7 @@ export default function QuizScreen({
   const [optionStates, setOptionStates] = useState<Record<string, OptionState>>({});
   const [answered, setAnswered] = useState(false);
   const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [sessionEnded, setSessionEnded] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
   const [tagEditorVisible, setTagEditorVisible] = useState(false);
 
   useEffect(() => {
@@ -102,20 +108,6 @@ export default function QuizScreen({
     setOptionStates({});
     setAnswered(false);
   }, [queue, queueIndex, words, mode]);
-
-  useEffect(() => {
-    const isDone = queue.length > 0 && queueIndex >= queue.length;
-    if (isDone && !sessionEnded && score.total > 0) {
-      setSessionEnded(true);
-      const { next, rollIncreased } = registerDailyActivity(gamification);
-      onGamificationUpdate(next);
-      if (rollIncreased) {
-        onRollIncreaseFlag(true);
-        setTimeout(() => onRollIncreaseFlag(false), 1200);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queueIndex, queue.length, sessionEnded, score.total]);
 
   const handleSelect = useCallback(
     async (optionWord: VocabWord, isCorrect: boolean) => {
@@ -155,13 +147,23 @@ export default function QuizScreen({
       setSrsStore(nextStore);
       await saveSRSStore(nextStore);
 
-      onGamificationUpdate(addAnswerResult(gamification, isCorrect, question.prompt.tier, activeTierCount));
+      const afterAnswer = addAnswerResult(gamification, isCorrect, question.prompt.tier, activeTierCount);
+      const { next, rollIncreased, dailyCount } = recordDailyCard(afterAnswer);
+      onGamificationUpdate(next);
+      if (rollIncreased) {
+        onRollIncreaseFlag(true);
+        setTimeout(() => onRollIncreaseFlag(false), 1200);
+      }
 
-      setTimeout(() => {
-        setQueueIndex((i) => i + 1);
-      }, 900);
+      if (!isPro && dailyCount >= FREE_DAILY_CARD_LIMIT) {
+        setTimeout(() => setLimitReached(true), 900);
+      } else {
+        setTimeout(() => {
+          setQueueIndex((i) => i + 1);
+        }, 900);
+      }
     },
-    [question, answered, srsStore, gamification, onGamificationUpdate, activeTierCount]
+    [question, answered, srsStore, gamification, onGamificationUpdate, onRollIncreaseFlag, activeTierCount, isPro]
   );
 
   const handleMarkKnown = useCallback(async () => {
@@ -200,6 +202,10 @@ export default function QuizScreen({
     [allWordsForTagSuggestions, userTags]
   );
 
+  if (limitReached) {
+    return <DailyLimitScreen colors={colors} onExit={onExit} onUpgrade={presentPaywall} />;
+  }
+
   if (!question) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -227,39 +233,42 @@ export default function QuizScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <PatternBackground opacity={0.25} fadeColor={colors.background} />
       <View style={[styles.contentWrap, { width: contentWidth }]}>
-        <View style={styles.topBar}>
-          <Pressable onPress={onExit} hitSlop={10}>
+        <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
+          <Pressable onPress={onExit} hitSlop={16}>
             <Ionicons name="close" size={26} color={colors.textSecondary} />
           </Pressable>
           <Text style={[styles.scoreText, { color: colors.textSecondary }]}>{progressLabel}</Text>
         </View>
 
-        <QuizCard
-          promptText={promptIsJapanese ? question.prompt.japanese : question.prompt.english}
-          romajiSubtext={promptIsJapanese ? question.prompt.romaji : undefined}
-          japaneseToSpeak={promptIsJapanese ? question.prompt.japanese : undefined}
-          reading={promptIsJapanese ? question.prompt.reading : undefined}
-          isJapanesePrompt={promptIsJapanese}
-          colors={colors}
-          onOpenTagEditor={() => setTagEditorVisible(true)}
-          onMarkKnown={handleMarkKnown}
-          isKnown={isWordKnown(currentSRS)}
-        />
+        <View style={styles.playArea}>
+          <QuizCard
+            promptText={promptIsJapanese ? question.prompt.japanese : question.prompt.english}
+            romajiSubtext={promptIsJapanese ? question.prompt.romaji : undefined}
+            japaneseToSpeak={promptIsJapanese ? question.prompt.japanese : undefined}
+            reading={promptIsJapanese ? question.prompt.reading : undefined}
+            isJapanesePrompt={promptIsJapanese}
+            colors={colors}
+            onOpenTagEditor={() => setTagEditorVisible(true)}
+            onMarkKnown={handleMarkKnown}
+            isKnown={isWordKnown(currentSRS)}
+          />
 
-        <View style={styles.optionsArea}>
-          {question.options.map((opt) => (
-            <SwipeableOption
-              key={opt.word.id}
-              label={promptIsJapanese ? opt.word.english : opt.word.japanese}
-              romaji={opt.word.romaji}
-              state={optionStates[opt.word.id] ?? 'idle'}
-              onPress={() => handleSelect(opt.word, opt.isCorrect)}
-              isJapaneseLabel={!promptIsJapanese}
-              reading={!promptIsJapanese ? opt.word.reading : undefined}
-              colors={colors}
-            />
-          ))}
+          <View style={styles.optionsArea}>
+            {question.options.map((opt) => (
+              <SwipeableOption
+                key={opt.word.id}
+                label={promptIsJapanese ? opt.word.english : opt.word.japanese}
+                romaji={opt.word.romaji}
+                state={optionStates[opt.word.id] ?? 'idle'}
+                onPress={() => handleSelect(opt.word, opt.isCorrect)}
+                isJapaneseLabel={!promptIsJapanese}
+                reading={!promptIsJapanese ? opt.word.reading : undefined}
+                colors={colors}
+              />
+            ))}
+          </View>
         </View>
       </View>
 
@@ -281,9 +290,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 12,
   },
   contentWrap: {
+    flex: 1,
     maxWidth: 560,
     paddingHorizontal: 4,
   },
@@ -291,7 +300,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+  },
+  playArea: {
+    flex: 1,
+    justifyContent: 'center',
   },
   scoreText: {
     fontSize: 15,

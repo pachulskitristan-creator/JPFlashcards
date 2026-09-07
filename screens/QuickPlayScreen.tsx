@@ -12,6 +12,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View, Pressable, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -23,11 +24,14 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import JapaneseText from '../components/JapaneseText';
+import PatternBackground from '../components/PatternBackground';
+import DailyLimitScreen from '../components/DailyLimitScreen';
 import { GameMode, GamificationState, QuestionDirection, SRSStore, VocabWord } from '../types';
 import { buildStudyQueue, getOrCreateSRSData, updateAfterAnswer } from '../services/srsEngine';
 import { loadSRSStore, saveSRSStore } from '../services/storageService';
 import { speakJapanese } from '../services/ttsService';
-import { addAnswerResult, registerDailyActivity } from '../services/gamificationService';
+import { addAnswerResult, recordDailyCard, FREE_DAILY_CARD_LIMIT } from '../services/gamificationService';
+import { usePurchases } from '../contexts/PurchasesContext';
 import { ThemeColors } from '../theme/theme';
 
 interface QuickPlayScreenProps {
@@ -70,6 +74,8 @@ export default function QuickPlayScreen({
 }: QuickPlayScreenProps) {
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(MAX_CONTENT_WIDTH, width - 40);
+  const insets = useSafeAreaInsets();
+  const { isPro, presentPaywall } = usePurchases();
 
   const [srsStore, setSrsStore] = useState<SRSStore>({});
   const [queue, setQueue] = useState<VocabWord[]>([]);
@@ -78,7 +84,7 @@ export default function QuickPlayScreen({
   const [revealed, setRevealed] = useState(false);
   const [streak, setStreak] = useState(0);
   const [score, setScore] = useState({ correct: 0, total: 0 });
-  const [sessionEnded, setSessionEnded] = useState(false);
+  const [limitReached, setLimitReached] = useState(false);
 
   const rotation = useSharedValue(0);
 
@@ -102,20 +108,6 @@ export default function QuickPlayScreen({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queueIndex, queue]);
-
-  useEffect(() => {
-    const isDone = queue.length > 0 && queueIndex >= queue.length;
-    if (isDone && !sessionEnded && score.total > 0) {
-      setSessionEnded(true);
-      const { next, rollIncreased } = registerDailyActivity(gamification);
-      onGamificationUpdate(next);
-      if (rollIncreased) {
-        onRollIncreaseFlag(true);
-        setTimeout(() => onRollIncreaseFlag(false), 1200);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queueIndex, queue.length, sessionEnded, score.total]);
 
   const promptIsJapanese = direction === 'jp-to-en';
 
@@ -149,11 +141,21 @@ export default function QuickPlayScreen({
       setSrsStore(nextStore);
       await saveSRSStore(nextStore);
 
-      onGamificationUpdate(addAnswerResult(gamification, gotIt, currentWord.tier, activeTierCount));
+      const afterAnswer = addAnswerResult(gamification, gotIt, currentWord.tier, activeTierCount);
+      const { next, rollIncreased, dailyCount } = recordDailyCard(afterAnswer);
+      onGamificationUpdate(next);
+      if (rollIncreased) {
+        onRollIncreaseFlag(true);
+        setTimeout(() => onRollIncreaseFlag(false), 1200);
+      }
 
-      setQueueIndex((i) => i + 1);
+      if (!isPro && dailyCount >= FREE_DAILY_CARD_LIMIT) {
+        setLimitReached(true);
+      } else {
+        setQueueIndex((i) => i + 1);
+      }
     },
-    [currentWord, revealed, srsStore, gamification, onGamificationUpdate, activeTierCount]
+    [currentWord, revealed, srsStore, gamification, onGamificationUpdate, onRollIncreaseFlag, activeTierCount, isPro]
   );
 
   const translateX = useSharedValue(0);
@@ -201,6 +203,10 @@ export default function QuickPlayScreen({
 
   const progressLabel = useMemo(() => `${score.correct}/${score.total}`, [score]);
 
+  if (limitReached) {
+    return <DailyLimitScreen colors={colors} onExit={onExit} onUpgrade={presentPaywall} />;
+  }
+
   if (!currentWord && queue.length === 0) {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
@@ -224,9 +230,10 @@ export default function QuickPlayScreen({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <PatternBackground opacity={0.25} fadeColor={colors.background} />
       <View style={[styles.contentWrap, { width: contentWidth }]}>
-        <View style={styles.topBar}>
-          <Pressable onPress={onExit} hitSlop={10}>
+        <View style={[styles.topBar, { paddingTop: insets.top + 12 }]}>
+          <Pressable onPress={onExit} hitSlop={16}>
             <Ionicons name="close" size={26} color={colors.textSecondary} />
           </Pressable>
           <View style={styles.topBarRight}>
@@ -240,6 +247,7 @@ export default function QuickPlayScreen({
           </View>
         </View>
 
+        <View style={styles.playArea}>
         <GestureDetector gesture={swipeGesture}>
           <Animated.View style={cardSwipeStyle}>
             <Pressable onPress={reveal} disabled={revealed}>
@@ -310,6 +318,7 @@ export default function QuickPlayScreen({
             Tap the card, then swipe right if you got it, left if you missed it
           </Text>
         )}
+        </View>
       </View>
     </View>
   );
@@ -319,16 +328,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 12,
   },
   contentWrap: {
+    flex: 1,
     maxWidth: 480,
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+  },
+  playArea: {
+    flex: 1,
+    justifyContent: 'center',
   },
   topBarRight: {
     flexDirection: 'row',

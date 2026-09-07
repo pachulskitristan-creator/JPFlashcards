@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Dropdown from '../components/Dropdown';
 import MultiSelectDropdown from '../components/MultiSelectDropdown';
+import RangeSlider from '../components/RangeSlider';
 import PatternBackground from '../components/PatternBackground';
 import XPBar from '../components/XPBar';
 import RollBadge from '../components/RollBadge';
@@ -13,21 +14,22 @@ import {
   FrequencyTier,
   GameMode,
   GamificationState,
+  MAX_TIER,
+  TIER_SIZE,
   UserTagStore,
   VocabWord,
-  getAllTiers,
   getTierLabel,
 } from '../types';
 import { getAllKnownTags } from '../services/tagsService';
 import { getTierXP } from '../services/gamificationService';
+import { usePurchases } from '../contexts/PurchasesContext';
 import { ThemeColors } from '../theme/theme';
-import GlassSurface from '../components/Glass';
 
 interface HomeScreenProps {
   allWords: VocabWord[];
   userTags: UserTagStore;
   selectedTiers: FrequencyTier[];
-  onToggleTier: (tier: FrequencyTier) => void;
+  onSetTierRange: (start: FrequencyTier, end: FrequencyTier) => void;
   selectedTags: string[];
   onToggleTag: (tag: string) => void;
   mode: GameMode;
@@ -39,7 +41,6 @@ interface HomeScreenProps {
   gamification: GamificationState;
   rollJustIncreased: boolean;
   colors: ThemeColors;
-  isDark: boolean;
   bottomInset: number;
 }
 
@@ -55,7 +56,7 @@ export default function HomeScreen({
   allWords,
   userTags,
   selectedTiers,
-  onToggleTier,
+  onSetTierRange,
   selectedTags,
   onToggleTag,
   mode,
@@ -67,11 +68,12 @@ export default function HomeScreen({
   gamification,
   rollJustIncreased,
   colors,
-  isDark,
   bottomInset,
 }: HomeScreenProps) {
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(MAX_CONTENT_WIDTH, width - 44);
+  const { isPro, presentPaywall } = usePurchases();
+  const rangeMax = isPro ? MAX_TIER * TIER_SIZE : TIER_SIZE;
 
   const availableTags = useMemo(() => getAllKnownTags(allWords, userTags), [allWords, userTags]);
 
@@ -80,6 +82,20 @@ export default function HomeScreen({
     for (const w of allWords) counts[w.tier] = (counts[w.tier] ?? 0) + 1;
     return counts;
   }, [allWords]);
+
+  // The tier range slider works in the same 1–6000 value space as the
+  // one on Statistics, snapped to 500-word steps — which line up
+  // exactly with tier boundaries, so converting between "value" and
+  // "tier" is just a division.
+  const minTier = selectedTiers.length > 0 ? Math.min(...selectedTiers) : 1;
+  const maxTier = selectedTiers.length > 0 ? Math.max(...selectedTiers) : 1;
+  const rangeStartValue = (minTier - 1) * TIER_SIZE + 1;
+  const rangeEndValue = maxTier * TIER_SIZE;
+  const rangeWordCount = useMemo(() => {
+    let total = 0;
+    for (let t = minTier; t <= maxTier; t++) total += tierWordCounts[t] ?? 0;
+    return total;
+  }, [tierWordCounts, minTier, maxTier]);
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -132,7 +148,6 @@ export default function HomeScreen({
           selectedKey={mode}
           onSelect={(key) => onSetMode(key as GameMode)}
           colors={colors}
-          isDark={isDark}
         />
         {mode === 'mixed' ? (
           <Text style={[styles.modeHint, { color: colors.textSecondary }]}>
@@ -141,22 +156,29 @@ export default function HomeScreen({
         ) : null}
 
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Vocabulary Range</Text>
-        <MultiSelectDropdown
-          options={getAllTiers().map((t) => ({
-            key: String(t),
-            label: getTierLabel(t),
-            sublabel: `${tierWordCounts[t] ?? 0} words`,
-          }))}
-          selectedKeys={selectedTiers.map(String)}
-          onToggle={(key) => onToggleTier(Number(key))}
+        <RangeSlider
+          min={1}
+          max={rangeMax}
+          startValue={Math.min(rangeStartValue, rangeMax)}
+          endValue={Math.min(rangeEndValue, rangeMax)}
+          onChangeEnd={(start, end) => {
+            const startTier = Math.ceil(start / TIER_SIZE);
+            const endTier = Math.min(Math.ceil(end / TIER_SIZE), isPro ? MAX_TIER : 1);
+            onSetTierRange(startTier, endTier);
+          }}
           colors={colors}
-          isDark={isDark}
-          placeholder="Select ranges…"
-          sheetTitle="Vocabulary Range"
         />
         <Text style={[styles.sectionSubtext, { color: colors.textSecondary }]}>
-          Selecting more than one range splits XP between their bars.
+          {minTier === maxTier ? `Range ${minTier}` : `Ranges ${minTier}–${maxTier}`} · {rangeWordCount} words
         </Text>
+        {!isPro ? (
+          <Pressable style={styles.unlockRangesRow} onPress={presentPaywall}>
+            <Ionicons name="lock-closed" size={13} color={colors.primary} />
+            <Text style={[styles.unlockRangesText, { color: colors.primary }]}>
+              Unlock Ranges 2–12 with Pro
+            </Text>
+          </Pressable>
+        ) : null}
 
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Travel Topics</Text>
         <MultiSelectDropdown
@@ -164,7 +186,6 @@ export default function HomeScreen({
           selectedKeys={selectedTags}
           onToggle={onToggleTag}
           colors={colors}
-          isDark={isDark}
           placeholder="All topics"
           sheetTitle="Travel Topics"
           emptyMessage="No tags yet — add some while studying and they'll appear here."
@@ -172,7 +193,7 @@ export default function HomeScreen({
 
         <Pressable style={styles.vocabManagerButton} onPress={onOpenVocabManager}>
           <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-          <Text style={[styles.vocabManagerText, { color: colors.primary }]}>Manage My Vocabulary</Text>
+          <Text style={[styles.vocabManagerText, { color: colors.primary }]}>Add to the Vocabulary</Text>
         </Pressable>
 
         <View style={styles.spacer} />
@@ -182,16 +203,12 @@ export default function HomeScreen({
           onPress={onStartQuickPlay}
           disabled={wordCount === 0}
         >
-          {wordCount !== 0 ? (
-            <GlassSurface
-              style={StyleSheet.absoluteFill}
-              colors={colors}
-              isDark={isDark}
-              tintColor={colors.card}
-            />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.border }]} />
-          )}
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: wordCount === 0 ? colors.border : `${colors.card}A6` },
+            ]}
+          />
           <Ionicons name="flash" size={18} color={wordCount === 0 ? colors.textSecondary : colors.primary} />
           <Text style={[styles.quickPlayButtonText, { color: wordCount === 0 ? colors.textSecondary : colors.primary }]}>
             Quick Play
@@ -275,10 +292,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
-    marginBottom: 6,
+    letterSpacing: 0.4,
+    marginBottom: 10,
     marginTop: 20,
   },
   sectionSubtext: {
@@ -289,6 +307,16 @@ const styles = StyleSheet.create({
   modeHint: {
     fontSize: 12.5,
     marginTop: 8,
+  },
+  unlockRangesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+  },
+  unlockRangesText: {
+    fontSize: 12.5,
+    fontWeight: '700',
   },
   vocabManagerButton: {
     flexDirection: 'row',

@@ -46,8 +46,8 @@ export type UserTagStore = Record<string, string[]>;
 
 // ---- Spaced repetition ----
 
-/** Leitner box, 1 = newest/hardest, 5 = most mastered. */
-export type LeitnerBox = 1 | 2 | 3 | 4 | 5;
+/** Leitner box, 1 = newest/hardest, 10 = fully mastered (known). */
+export type LeitnerBox = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 export interface SRSData {
   wordId: string;
@@ -63,6 +63,15 @@ export interface SRSData {
 }
 
 export type SRSStore = Record<string, SRSData>;
+
+/** How much of the vocabulary the user has mastered, overall and per Vocabulary Range. */
+export interface MasteryProgress {
+  knownCount: number;
+  learningCount: number;
+  newCount: number;
+  /** tier -> known-word count within that tier. */
+  tierKnownCounts: Record<number, number>;
+}
 
 // ---- Quiz ----
 
@@ -87,10 +96,13 @@ export interface GamificationState {
   xpByTier: Record<number, number>;
   totalCorrect: number;
   totalAnswered: number;
-  /** Consecutive-day study streak, shown in the UI as "Roll". */
+  /** Consecutive-day study streak, shown in the UI as "Roll". Secured for the day once dailyCardCount reaches ROLL_SECURE_THRESHOLD (see gamificationService.ts) — not tied to finishing a whole session. */
   rollCount: number;
-  /** 'YYYY-MM-DD' of the last day the user completed a session, or null. */
+  /** 'YYYY-MM-DD' the roll was last secured on, or null. */
   lastActiveDate: string | null;
+  /** Cards answered today (right or wrong), for the free-tier daily cap. Resets when dailyCardCountDate is no longer today. */
+  dailyCardCount: number;
+  dailyCardCountDate: string | null;
   unlockedAchievementIds: string[];
 }
 
@@ -99,5 +111,5 @@ export interface Achievement {
   title: string;
   description: string;
   icon: string; // Ionicons name
-  isUnlocked: (state: GamificationState) => boolean;
+  isUnlocked: (state: GamificationState, progress: MasteryProgress) => boolean;
 }
