@@ -8,7 +8,10 @@
     "icon": "./assets/images/icon.png",
     "ios": {
       "bundleIdentifier": "com.tristanpachulski.jpflashcards",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.tristanpachulski.jpflashcards",
@@ -16,7 +19,13 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
         "backgroundColor": "#F7F4EC"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -34,6 +43,11 @@
           "backgroundColor": "#F7F4EC"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "26c8479a-d73c-43da-86ef-b88909dd7df8"
+      }
+    }
   }
 }
